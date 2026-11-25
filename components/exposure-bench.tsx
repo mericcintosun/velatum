@@ -1,19 +1,19 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { ResultCell } from "@/components/result-cell";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ResultCell, ResultSkeleton } from "@/components/result-cell";
 import { TracePlot } from "@/components/trace-plot";
+import { UploadCell } from "@/components/upload-cell";
 import { useMeasurement } from "@/components/use-measurement";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { createBenchAdapter } from "@/lib/adapter";
 import { maxOffset, type DefenseSettings } from "@/lib/attack";
-import { BROKEN_GPX_SAMPLE, DEFENSE_LIMITS, DEFENSE_PRESETS, type BenchParams } from "@/lib/data";
+import { DEFENSE_LIMITS, DEFENSE_PRESETS, type BenchParams } from "@/lib/data";
 import { NULL_ISLAND, formatMeters, makePlane, planeFor, type Track, type XY } from "@/lib/geo";
-import { parseGpxFile, serializeGpx, type ParseIssue } from "@/lib/gpx";
+import { serializeGpx } from "@/lib/gpx";
 import type { AdapterMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,29 @@ type Source =
   | { kind: "sample"; runnerId: string }
   | { kind: "upload"; fileNames: string[]; tracks: Track[]; seed: number };
 
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
+/** Shown under the download button when the Blob or the anchor could not be made. */
+export function DownloadErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert" className="space-y-2 border-l-2 border-bad pl-3">
+      <p className="text-xs text-bad">The file could not be built in this tab.</p>
+      <Button variant="link" size="sm" className="h-auto px-0" onClick={onRetry}>
+        Try the download again
+      </Button>
+    </div>
+  );
+}
+
+/** Cell F when no sample runner is loaded. */
+export function RunnersEmptyState() {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">No sample runners are loaded. Drop your own GPX files in cell 4.</p>
+      <Button asChild variant="outline" size="sm">
+        <a href="#your-files">Check your own files</a>
+      </Button>
+    </div>
+  );
+}
 
 interface ExposureBenchProps {
   initial: BenchParams;
@@ -43,10 +65,10 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
   const [settings, setSettings] = useState<DefenseSettings>(() =>
     normalize({ zoneRadius: initial.zone, centerOffset: initial.offset, extraTrim: initial.trim })
   );
-  const [issues, setIssues] = useState<ParseIssue[]>([]);
-  const [reading, setReading] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [runnerPicks, setRunnerPicks] = useState(0);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadFailed, setDownloadFailed] = useState(false);
+  const downloadBusy = useRef(false);
   const measured = useDeferredValue(settings);
 
   const subject = useMemo(() => {
@@ -76,7 +98,8 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
   }, [source, adapter]);
 
   // The same hook for both adapters: fake measures on the main thread, real in a Web Worker.
-  const { measurement, pending } = useMeasurement(adapter, subject, measured);
+  // `stale` is true while the shown answer belongs to the previous runner or file set.
+  const { measurement, pending, stale } = useMeasurement(adapter, subject, measured);
   const result = measurement.result;
 
   // Shareable state: a sample result lives in the URL. Nothing about uploaded files ever does.
@@ -95,70 +118,60 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
 
   const update = (patch: Partial<DefenseSettings>) => setSettings((prev) => normalize({ ...prev, ...patch }));
 
-  const readFiles = useCallback(async (list: FileList | File[]) => {
-    const files = Array.from(list);
-    if (!files.length) return;
-    setReading(true);
-    const found: Track[] = [];
-    const next: ParseIssue[] = [];
-    for (const f of files) {
-      if (!/\.gpx$/i.test(f.name)) {
-        next.push({ file: f.name, level: "error", message: "Only .gpx files are read. Export the activity as GPX from your app first." });
-        continue;
-      }
-      if (f.size > MAX_FILE_BYTES) {
-        next.push({ file: f.name, level: "error", message: "Larger than 15 MB. Split very long recordings before checking them." });
-        continue;
-      }
-      try {
-        const out = parseGpxFile(f.name, await f.text());
-        found.push(...out.tracks);
-        next.push(...out.issues);
-      } catch {
-        next.push({ file: f.name, level: "error", message: "The browser could not read this file." });
-      }
-    }
-    if (found.length > 0 && found.length < 3) {
-      next.push({
-        file: "All files",
-        level: "error",
-        message: `Velatum needs at least 3 activities to look for a repeated start point. It found ${found.length}. The sample runner stays loaded.`,
-      });
-    } else if (found.length >= 3) {
-      const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-      setSource({ kind: "upload", fileNames: files.map((f) => f.name), tracks: found, seed });
-    }
-    setIssues(next);
-    setReading(false);
+  const onLoaded = useCallback((tracks: Track[], fileNames: string[], seed: number) => {
+    setSource({ kind: "upload", fileNames, tracks, seed });
   }, []);
 
-  const tryBrokenFile = () => {
-    setIssues(parseGpxFile("interrupted-download.gpx", BROKEN_GPX_SAMPLE).issues);
-  };
-
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragging(false);
-    void readFiles(e.dataTransfer.files);
-  };
-
-  const download = () => {
-    const cleaned = subject.tracks
-      .map((t, i) => ({
-        name: t.name,
-        segments: (result.zone.tracks[i]?.segments ?? []).map(([a, b]) => t.points.slice(a, b + 1)),
-      }))
-      .filter((t) => t.segments.length > 0);
-    const blob = new Blob([serializeGpx(cleaned)], { type: "application/gpx+xml" });
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = subject.fileName;
-    a.click();
-    window.setTimeout(() => URL.revokeObjectURL(href), 1000);
-  };
+  const onForget = useCallback(() => {
+    setSource({ kind: "sample", runnerId: initial.runnerId });
+  }, [initial.runnerId]);
 
   const zoneOn = settings.zoneRadius > 0;
+
+  // Step 5: the file is cut from the measurement on screen, never from a pending or stale one.
+  const guardDownload = () => {
+    if (downloading || downloadBusy.current) return;
+    if (!zoneOn || pending || stale) return;
+    downloadBusy.current = true;
+    setDownloading(true);
+    setDownloadFailed(false);
+    let href: string | null = null;
+    try {
+      const cleaned = subject.tracks
+        .map((t, i) => ({
+          name: t.name,
+          segments: (result.zone.tracks[i]?.segments ?? []).map(([a, b]) => t.points.slice(a, b + 1)),
+        }))
+        .filter((t) => t.segments.length > 0);
+      const blob = new Blob([serializeGpx(cleaned)], { type: "application/gpx+xml" });
+      href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = subject.fileName;
+      a.click();
+    } catch {
+      if (href) URL.revokeObjectURL(href);
+      downloadBusy.current = false;
+      setDownloading(false);
+      setDownloadFailed(true);
+      return;
+    }
+    const made = href;
+    // Release the guard after the browser has taken the file, then free the object URL.
+    window.setTimeout(() => {
+      if (made) URL.revokeObjectURL(made);
+      downloadBusy.current = false;
+      setDownloading(false);
+    }, 1000);
+  };
+
+  const downloadLabel = !zoneOn
+    ? "Download cleaned GPX"
+    : pending || stale
+      ? "Waiting for the measurement"
+      : downloading
+        ? "Preparing the file"
+        : "Download cleaned GPX";
   const offsetMax = maxOffset(settings.zoneRadius);
   const activePreset = DEFENSE_PRESETS.find(
     (p) =>
@@ -181,7 +194,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
         </div>
         <figure className="space-y-3">
           <div className="overflow-x-auto border border-border">
-            <TracePlot tracks={subject.xy} result={result} referenceLabel={subject.referenceLabel} />
+            <TracePlot tracks={subject.xy} result={stale ? null : result}referenceLabel={subject.referenceLabel} />
           </div>
           <figcaption className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
@@ -211,13 +224,17 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
 
       {/* Cell B: the result summary, which grows into the evidence view. */}
       <Card className="velatum-enter p-0 lg:col-span-5 lg:col-start-8">
-        <ResultCell
-          measurement={measurement}
-          pending={pending}
-          settings={measured}
-          subjectLabel={subject.label}
-          referenceLabel={subject.referenceLabel}
-        />
+        {stale ? (
+          <ResultSkeleton referenceLabel={subject.referenceLabel} />
+        ) : (
+          <ResultCell
+            measurement={measurement}
+            pending={pending}
+            settings={measured}
+            subjectLabel={subject.label}
+            referenceLabel={subject.referenceLabel}
+          />
+        )}
       </Card>
 
       {/* Cell C: the defenses. */}
@@ -298,89 +315,20 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
         </div>
 
         <div className="mt-auto space-y-3 border-t border-border pt-5">
-          <Button variant="outline" onClick={download} disabled={!zoneOn}>
-            Download cleaned GPX
+          <Button variant="outline" onClick={guardDownload} disabled={!zoneOn || pending || stale || downloading}>
+            {downloadLabel}
           </Button>
           <p className="text-xs text-muted-foreground">
             {zoneOn
               ? "One file with every recording as measured above. No device, author or app metadata is written."
               : "Set a privacy zone to produce a cleaned file."}
           </p>
+          {downloadFailed && <DownloadErrorState onRetry={guardDownload} />}
         </div>
       </Card>
 
-      {/* Cell D: the one primary call to action. */}
-      <Card
-        id="your-files"
-        className={cn("velatum-enter flex scroll-mt-24 flex-col gap-4 p-6 lg:col-span-4", dragging && "border-primary bg-secondary")}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-      >
-        <CardLabel number={4}>Your own files</CardLabel>
-        <h2 className="text-3xl">Check your runs</h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Export three or more activities as GPX and drop them here. They are read by this page only: no upload, no account,
-          and the page&apos;s security policy blocks every outgoing request.
-        </p>
-        <Input
-          ref={fileRef}
-          type="file"
-          accept=".gpx,application/gpx+xml"
-          multiple
-          aria-label="GPX files to check"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(e) => {
-            if (e.target.files) void readFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-        <Button size="lg" onClick={() => fileRef.current?.click()} disabled={reading}>
-          {reading ? "Reading files" : "Choose GPX files"}
-        </Button>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <Button variant="link" size="sm" className="h-auto px-0" onClick={tryBrokenFile}>
-            Try a broken file
-          </Button>
-          {source.kind === "upload" && (
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto px-0"
-              onClick={() => {
-                setSource({ kind: "sample", runnerId: initial.runnerId });
-                setIssues([]);
-              }}
-            >
-              Forget my files
-            </Button>
-          )}
-        </div>
-        {source.kind === "sample" && issues.length === 0 && (
-          <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-            No files checked yet. Your results replace the sample runner and never leave this tab.
-          </p>
-        )}
-        {issues.length > 0 && (
-          <ul className="space-y-2 border-t border-border pt-3" aria-live="polite">
-            {issues.map((issue, i) => (
-              <li key={`${issue.file}-${i}`} className="flex gap-2 text-xs leading-relaxed">
-                <Badge variant={issue.level === "error" ? "bad" : "warn"} className="shrink-0">
-                  {issue.level}
-                </Badge>
-                <span>
-                  <span className="font-semibold">{issue.file}:</span> {issue.message}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {/* Cell D: the one primary call to action, with staged reading, error and empty states. */}
+      <UploadCell onLoaded={onLoaded} onForget={onForget} uploadActive={source.kind === "upload"} resetKey={runnerPicks} />
 
       {/* Cell E: pure image. */}
       <Card className="velatum-enter flex flex-col justify-between gap-3 p-4 lg:col-span-3">{imageCell}</Card>
@@ -391,9 +339,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
           <CardLabel number={6}>Sample runners, all synthetic</CardLabel>
           <p className="text-xs text-muted-foreground">Homes sit on a fictional street grid at 0°N 0°E, so none is a real doorstep.</p>
         </div>
-        {runners.length === 0 && (
-          <p className="text-sm text-muted-foreground">No sample runners are loaded. Drop your own GPX files in cell 4.</p>
-        )}
+        {runners.length === 0 && <RunnersEmptyState />}
         <div className="flex flex-wrap gap-2">
           {runners.map((r) => {
             const active = source.kind === "sample" && source.runnerId === r.id;
@@ -405,7 +351,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
                 className={cn("h-auto flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left", active && "border-primary bg-secondary")}
                 onClick={() => {
                   setSource({ kind: "sample", runnerId: r.id });
-                  setIssues([]);
+                  setRunnerPicks((n) => n + 1);
                 }}
               >
                 <span>
