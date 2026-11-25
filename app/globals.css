@@ -1,31 +1,33 @@
 @import "tailwindcss";
 
-/* shadcn-style design tokens. The ONLY place colors live: restyle a project by
-   editing these variables from IDENTITY.md; components never carry hex.
-   TEMPLATE placeholder palette: warm neutral, deliberately NOT the navy ground +
-   teal accent the scaffold rules ban, so a token the scaffold forgets to
-   rewrite cannot reintroduce that look. Every value below is replaced. */
+/* Velatum design tokens, D11 museum. Every hex below comes from IDENTITY.md's key block:
+   bone ground, antique-gold accent, hairline-gold lines, sharp corners. Components use
+   these tokens through Tailwind utilities and never carry a hex of their own. */
 :root {
-  --background: oklch(0.985 0.004 80);
-  --foreground: oklch(0.2 0.01 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 60);
-  --primary: oklch(0.45 0.12 40);
-  --primary-foreground: oklch(0.98 0.005 80);
-  --secondary: oklch(0.94 0.008 80);
-  --secondary-foreground: oklch(0.25 0.01 60);
-  --muted: oklch(0.94 0.008 80);
-  --muted-foreground: oklch(0.5 0.01 60);
-  --accent: oklch(0.92 0.02 60);
-  --accent-foreground: oklch(0.2 0.01 60);
-  --destructive: oklch(0.55 0.19 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.01 80);
-  --input: oklch(0.88 0.01 80);
-  --ring: oklch(0.45 0.12 40);
-  --radius: 0.375rem;
+  --background: #f4f1ea;
+  --foreground: #191713;
+  --card: #ece7dc;
+  --card-foreground: #191713;
+  --popover: #f4f1ea;
+  --popover-foreground: #191713;
+  --primary: #7a6220;
+  --primary-foreground: #f4f1ea;
+  --secondary: #e2dccd;
+  --secondary-foreground: #191713;
+  --muted: #e2dccd;
+  --muted-foreground: color-mix(in oklab, #191713 66%, #f4f1ea);
+  --accent: #e2dccd;
+  --accent-foreground: #191713;
+  --destructive: #b3382c;
+  --destructive-foreground: #f4f1ea;
+  --border: #d3cab4;
+  --input: #d3cab4;
+  --ring: #7a6220;
+  --gold: #ad8c3a;
+  --ok: #2e7d4f;
+  --warn: #a8641c;
+  --bad: #b3382c;
+  --radius: 0.125rem;
 }
 
 @theme inline {
@@ -48,13 +50,76 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-gold: var(--gold);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --radius-sm: 0px;
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: var(--radius);
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-mulish), "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+  h1,
+  h2 {
+    font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--gold);
+    color: var(--background);
+  }
+  details > summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* MOTION M5: opacity only, linear, 280ms, no transform. Bento cells enter one after
+   another through nth-child delays, never through inline custom properties. */
+@keyframes velatum-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.velatum-enter {
+  animation: velatum-fade 280ms linear both;
+}
+
+.velatum-bento > :nth-child(2) {
+  animation-delay: 70ms;
+}
+.velatum-bento > :nth-child(3) {
+  animation-delay: 140ms;
+}
+.velatum-bento > :nth-child(4) {
+  animation-delay: 210ms;
+}
+.velatum-bento > :nth-child(5) {
+  animation-delay: 280ms;
+}
+.velatum-bento > :nth-child(6) {
+  animation-delay: 350ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .velatum-enter,
+  .velatum-bento > * {
+    animation: none;
+  }
 }
