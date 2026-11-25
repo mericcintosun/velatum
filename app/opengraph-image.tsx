@@ -1,15 +1,12 @@
 import { ImageResponse } from "next/og";
+import { BONE, GOLD, HAIRLINE, INK } from "@/lib/og-palette";
 
 export const alt = "Velatum: see how a stalker would find your home from your run files, then make the attack miss";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// IDENTITY.md palette (D11 museum). ImageResponse cannot read CSS variables, so the key
-// block hexes are written here directly.
-const BONE = "#f4f1ea";
-const INK = "#191713";
-const GOLD = "#7a6220";
-const HAIRLINE = "#ad8c3a";
+// IDENTITY.md palette (D11 museum) comes from lib/og-palette.ts, because ImageResponse
+// cannot read the CSS variables in app/globals.css.
 
 export default function OpengraphImage() {
   return new ImageResponse(

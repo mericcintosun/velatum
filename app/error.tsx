@@ -1,12 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function Error({ reset }: { error: Error; reset: () => void }) {
+// The error message is never printed: it could echo file content, and it would not help the reader.
+export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="space-y-4 py-24 text-center">
-      <h2 className="text-xl font-semibold">Something went wrong</h2>
-      <Button onClick={() => reset()}>Try again</Button>
-    </div>
+    <section role="alert" className="mx-auto max-w-xl space-y-6 border-t border-gold py-24 text-center">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Exhibit closed</p>
+      <p className="font-display text-5xl font-semibold tracking-wide">Velatum</p>
+      <h1 className="text-3xl">The bench stopped. Your files were not sent anywhere.</h1>
+      <div className="flex flex-wrap items-center justify-center gap-4">
+        <Button onClick={() => reset()}>Try again</Button>
+        <Button asChild variant="outline">
+          <Link href="/?runner=maya">Open the sample runner Maya</Link>
+        </Button>
+      </div>
+    </section>
   );
 }

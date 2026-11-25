@@ -2,6 +2,8 @@
 
 Drop in your run or ride recordings and Velatum shows you how someone would find your home from them. Then try hiding settings and watch the same attack miss by more and more meters. Your files never leave your device.
 
+The judged click path is in DEMO.md.
+
 > Live demo: https://velatum.vercel.app
 
 ## The problem

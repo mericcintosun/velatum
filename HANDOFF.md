@@ -103,3 +103,41 @@ Museum direction: bone ground, antique-gold accent, hairline-gold lines, sharp c
 - The 90-second demo flow above works end to end on the seeded runners, including the broken-file error and the download.
 - All three K1 signature interactions exist and respect reduced motion.
 - The wow moment (circle drifting off the house, number climbing, card turning green) is rehearsed twice on the deployed build.
+
+## 6. Phase 1: walking skeleton seams (2026-11-25)
+
+### Goal
+Add the seams around the working bench without changing what it does: the demo contract (`DEMO.md`), agent guardrails (`CLAUDE.md`), a JSON seed fixture with a deterministic `npm run seed`, a typed core, a bench adapter selected by `ADAPTER_MODE`, a static `GET /api/runners` stub, and shell details (title template, active nav, branded error, not-found and loading pages, empty states). Demo step 1 (`/?runner=maya`, Maya loaded, "Files stay in this tab" badge in cell A) is now a seed-backed contract.
+
+### Status (per slice)
+- Slice 1, DEMO.md and CLAUDE.md: done.
+- Slice 2, typed core, seed and adapter seam: done. `components/exposure-bench.tsx` now calls `adapter.loadSample`, `adapter.measure` and `adapter.listRunners()`; no direct `generateRunnerTracks`, `runBench` or `RUNNERS` remain there. Empty states added to cells D and F.
+- Slice 3, API stub: done (`app/api/runners/route.ts`, force-static).
+- Slice 4, shell, metadata and error surfaces: done. Nothing from the cut list was cut.
+- Build status: unverified. The agent cannot run commands; the runner's `npm run build` is the first real check.
+
+### Decisions
+- **Fake equals the main-thread seeded bench.** The attacks, parsing and download were already real. The only thing that changes between modes is where the bench runs, so `fakeBenchAdapter` is the existing code path (seeded synthetic runners, `runBench` on the main thread). `createBenchAdapter("real")` returns the same adapter until Phase 2 adds the Worker. This keeps the demo working while giving Phase 2 one place to swap.
+- **The page does not fetch the API.** Zero network calls from the page is the product promise, and the CSP enforces it. The page reads runners through `lib/adapter.ts` in the bundle. `/api/runners` exists for judges and tooling, serves only public synthetic profiles and accepts no body.
+- **`ADAPTER_MODE` is read only on the server** (`lib/adapter-mode.ts`, called from `app/page.tsx` and the route) and passed down as a prop, so `lib/adapter.ts` stays free of `process.env`.
+- **`NODE_ENV` exemption.** `next.config.ts` reads `process.env.NODE_ENV` to choose the dev or production CSP. Next sets it, so it has no line in `.env.example`. Every other `process.env` key (`ADAPTER_MODE`, `NEXT_PUBLIC_BRAND_FILES`) does.
+- **Brand link moved into `components/header-link.tsx`** (client, `usePathname`) together with the "How it works" link, so both can set `aria-current`. The single `<BrandMark />` sits inside that brand `<Link>`.
+- **Hidden file input got `aria-label="GPX files to check"`** to meet the label rule; it stays `aria-hidden` and is driven by the visible button.
+- **Seed manifest** (`fixtures/seed-manifest.json`) was written by hand with the content the script produces: 8 runners sorted by id, 144 activities in total.
+
+### Failed attempts
+None.
+
+### Files changed
+New: `DEMO.md`, `CLAUDE.md`, `fixtures/runners.json`, `fixtures/seed-manifest.json`, `scripts/seed.mjs`, `lib/types.ts`, `lib/adapter.ts`, `lib/adapter-mode.ts`, `lib/data/seed.ts`, `lib/og-palette.ts`, `app/api/runners/route.ts`, `app/loading.tsx`, `components/header-link.tsx`, `.farm-commits.json`.
+Edited: `lib/data.ts`, `components/exposure-bench.tsx`, `components/site-header.tsx`, `app/page.tsx`, `app/layout.tsx`, `app/about/page.tsx`, `app/not-found.tsx`, `app/error.tsx`, `app/opengraph-image.tsx`, `package.json`, `.env.example`, `README.md`, `HANDOFF.md`.
+
+### Commands run
+None, the agent cannot run commands. Checks were done by reading files and with Grep only.
+
+### Open questions
+- Deadline conflict: the Devpost overview says November 22, the schedule says December 9, 2026, 5:00 PM EST. Today is November 25. Confirm with the organizer.
+- The meter numbers for Maya's three presets are still unmeasured. Nothing in the repo states them as facts; read them off the screen until `npm run proof` exists.
+
+### Next best step
+Phase 2: a Worker-backed `real` adapter in `createBenchAdapter` (the same `runBench` behind `new Worker(new URL("./bench.worker.ts", import.meta.url))`, CSP unchanged), `npm run proof` measuring Maya's three presets and writing the numbers, and `.farm-live.json`. Record the live Vercel URL here.

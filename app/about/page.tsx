@@ -6,7 +6,7 @@ import { Card, CardLabel } from "@/components/ui/card";
 import { LIMITATIONS, RUNNERS } from "@/lib/data";
 
 export const metadata: Metadata = {
-  title: "How Velatum works",
+  title: "How it works",
   description:
     "Why Velatum exists, the two home-finding attacks it runs in your browser, the defenses it measures, and what it cannot see.",
 };
