@@ -95,7 +95,12 @@ export function gaussian(rng: () => number): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+/**
+ * Distances from half a kilometer up read in km (0.5 km, 0.75 km, 1.6 km),
+ * matching the plot's scale bar, so one unit is used for walkable vs. far.
+ */
 export function formatMeters(m: number): string {
-  if (m >= 1000) return `${(m / 1000).toFixed(2)} km`;
-  return `${Math.round(m)} m`;
+  const r = Math.round(m);
+  if (r >= 500) return `${Number((r / 1000).toFixed(2))} km`;
+  return `${r} m`;
 }
