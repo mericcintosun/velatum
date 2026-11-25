@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { SceneSlot } from "@/components/scene-slot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardLabel } from "@/components/ui/card";
@@ -176,22 +177,29 @@ export function ResultCell({ measurement, pending = false, settings, subjectLabe
               aria-labelledby="velatum-evidence-title"
               onClick={(e) => e.stopPropagation()}
               className={cn(
-                "max-h-[88vh] w-full max-w-3xl overflow-y-auto border border-border border-l-2 bg-background p-8",
+                "max-h-[88vh] w-full max-w-3xl overflow-y-auto border border-border border-l-2 bg-background p-5 sm:p-8",
                 TONE_BORDER[copy.tone]
               )}
             >
               <div className="flex items-start justify-between gap-6">
                 <div className="space-y-2">
                   <CardLabel number={2}>Evidence, {subjectLabel}</CardLabel>
-                  <h2 id="velatum-evidence-title" className="text-4xl">
+                  <h2 id="velatum-evidence-title" className="text-2xl sm:text-3xl">
                     <span className={TONE_TEXT[copy.tone]}>{headline === null ? "No guess" : formatMeters(headline)}</span> from the{" "}
                     {referenceLabel.toLowerCase()}, down from {m(result.baseline.error)}
                   </h2>
                 </div>
-                <Button ref={closeRef} variant="ghost" size="sm" className="min-h-11 min-w-11" onClick={() => setOpen(false)}>
+                <Button ref={closeRef} variant="outline" size="sm" className="min-h-11 min-w-11" onClick={() => setOpen(false)}>
                   Close
                 </Button>
               </div>
+
+              <SceneSlot n={4}
+                alt="A row of exhibit cards on bone paper, each holding one runner's loop, with a gold circle drawn well away from a small house"
+                width={1200}
+                height={400}
+                className="mt-6 border border-border"
+              />
 
               <div className="mt-8 grid gap-px border border-border bg-border sm:grid-cols-2">
                 <section className="space-y-2 bg-background p-5">

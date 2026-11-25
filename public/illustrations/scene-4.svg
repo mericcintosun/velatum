@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <rect width="1200" height="400" fill="#f4f1ea"/>
+  <rect x="24" y="24" width="1152" height="352" fill="none" stroke="#ad8c3a" stroke-width="1"/>
+  <g fill="#ece7dc" stroke="#d3cab4" stroke-width="1">
+    <rect x="64" y="64" width="240" height="250"/>
+    <rect x="344" y="64" width="240" height="250"/>
+    <rect x="624" y="64" width="240" height="250"/>
+    <rect x="904" y="64" width="240" height="250"/>
+  </g>
+  <g fill="none" stroke="#ad8c3a" stroke-width="1">
+    <line x1="64" y1="64" x2="304" y2="64"/>
+    <line x1="344" y1="64" x2="584" y2="64"/>
+    <line x1="624" y1="64" x2="864" y2="64"/>
+    <line x1="904" y1="64" x2="1144" y2="64"/>
+  </g>
+  <g fill="none" stroke="#191713" stroke-width="2" stroke-opacity="0.55" stroke-linejoin="round">
+    <path d="M150 210 L150 150 L230 150 L230 250 L190 250 L190 210 Z"/>
+    <path d="M440 220 L440 120 L520 120 L520 190 L480 190 L480 220 Z"/>
+    <path d="M720 200 L720 140 L800 140 L800 260 L760 260 L760 200 Z"/>
+    <path d="M1000 215 L1000 130 L1090 130 L1090 230 L1040 230 L1040 215 Z"/>
+  </g>
+  <g fill="none" stroke="#ad8c3a" stroke-width="1.5" stroke-dasharray="6 5">
+    <circle cx="220" cy="140" r="46"/>
+    <circle cx="510" cy="250" r="46"/>
+    <circle cx="800" cy="130" r="46"/>
+    <circle cx="1080" cy="260" r="46"/>
+  </g>
+  <g fill="#7a6220">
+    <path d="M138 228 L138 216 L150 205 L162 216 L162 228 Z"/>
+    <path d="M428 238 L428 226 L440 215 L452 226 L452 238 Z"/>
+    <path d="M708 218 L708 206 L720 195 L732 206 L732 218 Z"/>
+    <path d="M988 233 L988 221 L1000 210 L1012 221 L1012 233 Z"/>
+  </g>
+  <g font-family="Georgia, serif" font-size="13" fill="#191713" letter-spacing="3">
+    <text x="76" y="300">NO. 1</text>
+    <text x="356" y="300">NO. 2</text>
+    <text x="636" y="300">NO. 3</text>
+    <text x="916" y="300">NO. 4</text>
+  </g>
+  <text x="600" y="352" font-family="Georgia, serif" font-size="16" fill="#191713" text-anchor="middle" letter-spacing="4">THE EVIDENCE</text>
+</svg>
