@@ -2,13 +2,13 @@
 
 Velatum shows how someone would find your home from the run and ride recordings you share, then measures how far each hiding setting throws that guess off. People who post their activities publicly trust a privacy zone to hide their front door, and nobody gives them a way to check that it does.
 
-Live: https://velatum.vercel.app/?runner=maya. Start at DEMO.md step 1.
+Live: https://velatum-five.vercel.app/?runner=maya. Start at DEMO.md step 1.
 
 The live URL runs both attacks in your tab on synthetic sample runners; drop your own GPX files and they are measured the same way, and the files stay in this tab.
 
 ## Try it in 60 seconds
 
-1. Open https://velatum.vercel.app/?runner=maya. The sample runner Maya is loaded on Fig. 1.
+1. Open https://velatum-five.vercel.app/?runner=maya. The sample runner Maya is loaded on Fig. 1.
 2. Click "No zone" in cell 3 and read the distance in cell 2.
 3. Click "200 m zone". The gold circle appears around her home and cell 2 stays red.
 4. Drag the gold handle on Fig. 1 away from the home (or use the arrow keys on it), or click "Offset + ragged edge". The number in cell 2 climbs and the roll call in cell 6 is measured again.
@@ -18,7 +18,7 @@ The live URL runs both attacks in your tab on synthetic sample runners; drop you
 
 | What | Address |
 | --- | --- |
-| Live app | https://velatum.vercel.app |
+| Live app | https://velatum-five.vercel.app |
 
 There is no contract, no chain and no server API that takes input.
 

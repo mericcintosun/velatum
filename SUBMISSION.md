@@ -70,5 +70,5 @@ next, react, react-dom, typescript, tailwindcss, @tailwindcss/postcss, motion, z
 
 ## Try it out
 
-- Live app: https://velatum.vercel.app/?runner=maya
+- Live app: https://velatum-five.vercel.app/?runner=maya
 - Source: https://github.com/mericcintosun/velatum
