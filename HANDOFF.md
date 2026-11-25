@@ -231,3 +231,84 @@ None, the agent cannot run commands.
 
 ### Next best step
 Phase 4: run `npm run build`, `npm test` and `npm run proof`, walk DEMO.md steps 1 to 7 three times after `npm run demo:reset`, then start the next frontend work. Kit signature 2 (the draggable zone center) stays in Phase 5.
+
+## 9. Phase 4: roll call, mobile header, security pass (2026-11-25)
+
+### Goal
+Second wow: cell F becomes a roll call that measures all 8 synthetic runners at the current settings, so the defense is shown on the whole roster and not on Maya alone (DEMO.md step 8). Also: a usable header at 360 px, 44 px touch targets on the demo path, full OG and Twitter metadata, DELIVERY.md, footer source links, the claim band in cell A, then the security pass (SECURITY.md plus a web hygiene sweep).
+
+Track facts: every `targetTracks` entry has a kind other than `"sponsor-bounty"`, `requiredTech: []` and `entryMode: "automatic"`. **Bounty hours are 0; the 4-hour bounty cap is unused. There is no bounty integration to build, and no `targetTracks` row was dropped.**
+
+### Status (per slice)
+- A1, roll call: done, nothing cut. `components/use-roll-call.ts` (new), cell F in `components/exposure-bench.tsx`, DEMO.md step 8 plus its Fallbacks line, `rollCall()` in `scripts/proof.ts`, the `roll-call` marker pair in README "Measured results" (reads "Not run" until `npm run proof`), README fallback table row 8.
+- A2, mobile header and responsive audit: done. `MobileMenu` in `components/header-link.tsx`, `hidden md:flex` desktop nav in `components/site-header.tsx`, `min-h-11` on every listed call site, `break-all` plus `title={issue.file}` in `components/upload-cell.tsx`, IDENTITY.md amendment.
+- A3, DELIVERY.md, metadata, footer, README tracks note: done.
+- A4, claim band and microcopy: done.
+- B1, contract and wallet fronts: documented (vacuous).
+- B2, web hygiene sweep: done, no fixes needed; one finding parked (CSP `'unsafe-inline'`).
+- B3, SECURITY.md: done.
+- Build status: unverified. The agent cannot run commands.
+
+### Decisions
+- **Roll call gated on `!pending && !stale`.** `useRollCall(adapter, runners, measured, !pending && !stale)` starts a sweep only while cell B is idle, so it never delays the number the user is reading. A settings change, or cell B going pending, bumps the counter in the effect cleanup and every reply of the older sweep is dropped. The hook stores the settings key with its rows, so rows measured for older settings are never shown as current; the UI shows "Measuring" instead. A finished sweep is remembered (`doneKey`) so a runner switch does not re-measure the same settings.
+- **Roll call runs runners one at a time** through `adapter.measure` (worker in real mode, with the existing retry and main-thread fallback). No `measureNow` in the hook; the first paint is the loading text.
+- **Shared `sampleSubject` helper in `lib/adapter.ts`.** The hook may import only `@/lib/adapter`, `@/lib/types`, `@/lib/attack` and React, but building a sample subject needs `makePlane(NULL_ISLAND)` from `lib/geo.ts`. The sample-subject code was about to exist twice (bench and roll call), so it moved into `lib/adapter.ts` as `sampleSubject(adapter, id)` and both call sites use it. This is outside the A1 file list and is noted here.
+- **Only the status line swaps through `AnimatePresence`** (loading, error, ready; `mode="wait" initial={false}`, opacity only, linear, 0.28 s, inside `MotionConfig reducedMotion="user"`). The runner buttons stay mounted so the picker never disappears while a slider moves; each button's second line reads "Measuring", "No guess" or the distance plus verdict word in `text-bad`, `text-warn` or `text-ok`.
+- **Native `<details>` menu.** No new state, works with JavaScript off, keyboard accessible by default. A click on either link closes the panel (`closest("details").open = false`). The panel is absolutely placed under the sticky header on `bg-background` with `border-b border-border`, no blur, no opacity suffix.
+- **`metadataBase` literal** `new URL("https://velatum.vercel.app")`, no env variable, so `og:image` from `app/opengraph-image.tsx` resolves to an absolute https URL.
+- **No bounty table.** No track names a sponsor product; README carries the one-sentence note instead. Track names with their em dashes live only in DELIVERY.md headings.
+- **Claim band replaces the cell A label text.** Cell A already had `CardLabel number={1}` ("Home exposure bench"). A second "No. 1" label would read as a duplicate exhibit number, so the existing label now reads "Velatum, for people who share their runs and rides". The h1 and paragraph are unchanged.
+- **"Start with the sample runner Maya" is a plain `<a href="/?runner=maya">`**, not `next/link`. The bench keeps its state in `useState` seeded from the URL, so a client-side navigation to the same route would not reset it; a full load does. There is no ESLint in `package.json`, so `no-html-link-for-pages` does not run in the build.
+- **DELIVERY.md prize lines for tracks 2 to 4** say the verbatim prize is not in the repo record. Only the main track's `prizeVerbatim` ("$ 280 in cash") was given; inventing the others would be wrong.
+- **DEMO.md step 8 does not claim which runner leaks.** The Phase 2 proof table shows Jonas at 525 m under "Offset + ragged edge" (protected), and Aylin and Sofia under 400 m, so the step tells the presenter to read it off the screen.
+
+### Responsive audit (Slice A2), smallest file first
+- `components/site-header.tsx`. Wide: none. Long strings: none. Interactive: brand link, "How it works", "Check your files". Fixed: desktop pair now `hidden md:flex`; `MobileMenu` below md; "Check your files" `min-h-11`.
+- `components/header-link.tsx`. Wide: none. Interactive: brand link, header link, new summary and panel links. Fixed: `min-h-11` on brand link, header link, summary (`min-h-11 min-w-11`) and the panel action.
+- `app/not-found.tsx`. Wide: `text-5xl` wordmark (one short word, fits 360 px). Interactive: "Back to the bench". Fixed: `min-h-11`.
+- `app/error.tsx`. Wide: `text-5xl` wordmark. Interactive: "Try again", "Open the sample runner Maya". Fixed: `min-h-11` on both, `max-w-full whitespace-normal` on the longer one.
+- `components/result-cell.tsx`. Wide: `text-7xl` number (a few characters), dialog `w-full max-w-3xl` (fluid), evidence grid one column below `sm`. Interactive: "Open the evidence", "Close". Fixed: `min-h-11`; Close also `min-w-11`.
+- `components/upload-cell.tsx`. Long strings: `{issue.file}` (user file names). Interactive: "Choose GPX files", "Forget my files", "Choose other files", "Back to the sample runner", "Try a broken file". Fixed: `min-h-11` on all five, `break-all` plus `title={issue.file}` on the file name. The loaded line shows only a file count, no name, so it needs no break rule.
+- `app/about/page.tsx`. Wide: h1 `text-5xl`, now `text-4xl sm:text-5xl`. Interactive: research `<summary>`, "Open Maya with a 200 m zone", "Open the sample runner Maya". Fixed: `min-h-11` on all three.
+- `components/exposure-bench.tsx`. Wide: the plot (inside its existing `overflow-x-auto`). Interactive: Maya link, 3 presets, 3 sliders, download, "Try the download again", runner buttons, "Measure the roll call again", "Check your own files". Fixed: `min-h-11` on each; runner buttons and download also `max-w-full`.
+- `w-[...]` grep over `app/` and `components/`: 0 hits, so no fixed width above 360 px exists.
+
+### Security pass (Part B)
+- Contract front skipped: no contracts/ directory, Velatum has no chain.
+- Wallet grep `eth_requestAccounts|personal_sign|eth_sign|wallet_switchEthereumChain|connect\(|approve\(|ethers|viem|wagmi` over the repo excluding `node_modules` and `.next`: **0 hits** (0 in `app/`, `components/`, `lib/`).
+- Blockaid: there is no wallet connect, so no Blockaid connect screen is expected.
+- Secrets grep `sk-|PRIVATE_KEY|[0-9a-fA-F]{64}|[A-Za-z0-9+/]{80,}` over `app/`, `components/`, `lib/`, `public/`: **0 hits**. `NEXT_PUBLIC_BRAND_FILES` is a list of file names and public by design. `.farm-live.json` is still `{ "requiredEnv": [], "optionalEnv": [] }`.
+- `target="_blank"`: **2 hits**, both in the `app/layout.tsx` footer, both with `rel="noopener noreferrer"`. `/about` has no outbound links.
+- `http://` over `app/`, `components/`, `lib/`, `public/`, `scripts/`: **7 hits**, all XML namespace identifiers that are never fetched, so exempt: `http://www.w3.org/2000/svg` in `app/icon.svg`, `public/logo.svg` and `public/illustrations/scene-1..3.svg` (the last three are read-only by rule); `http://www.topografix.com/GPX/1/1` in `lib/gpx.ts:90` and `lib/data.ts:103`. Nothing to fix.
+- Forms `<form|action=` over `app/`, `components/`, `lib/`: **0 hits**. The upload is a hidden file input read in the tab. `app/api/runners/route.ts` exports only `GET` and `dynamic = "force-static"`; it takes no input.
+- Guardrail greps over `app/`, `components/`, `lib/`: `console\.log` 0, `useSearchParams` 0, `writeFile|appendFile|mkdirSync` 0, `fetch\(` 0, `localStorage|sessionStorage|indexedDB` 0. `process.env` keys: `ADAPTER_MODE` and `NEXT_PUBLIC_BRAND_FILES`, both in `.env.example`; `NODE_ENV` exempt.
+
+### Parked findings (found, not fixed)
+- **CSP `script-src 'unsafe-inline'`**, severity **low**. Reason: Next.js writes inline bootstrap scripts; no user-supplied HTML is rendered anywhere; `connect-src 'self'` still blocks exfiltration even if a script ran. Shortest fix path: generate a nonce in `middleware.ts`, pass it to `script-src 'self' 'nonce-...'` and render with `force-dynamic` so Next stamps the nonce on its scripts. Not implemented this phase (the CSP must stay unchanged).
+
+### Failed attempts
+None.
+
+### Files changed
+New: `components/use-roll-call.ts`, `DELIVERY.md`, `SECURITY.md`.
+Edited: `components/exposure-bench.tsx`, `components/header-link.tsx`, `components/site-header.tsx`, `components/result-cell.tsx`, `components/upload-cell.tsx`, `lib/adapter.ts`, `app/layout.tsx`, `app/about/page.tsx`, `app/not-found.tsx`, `app/error.tsx`, `scripts/proof.ts`, `DEMO.md`, `README.md`, `IDENTITY.md` (Amendments only), `HANDOFF.md`, `.farm-commits.json`.
+
+### Commands run
+None, the agent cannot run commands.
+
+### Open questions
+- Deadline conflict: the Devpost overview says November 22, the schedule says December 9, 2026, 5:00 PM EST. Still unconfirmed with the organizer.
+- The CSP nonce fix for `'unsafe-inline'` (above). It changes rendering to dynamic; decide whether that cost is worth a low finding.
+- Roll call latency on the live URL is unmeasured: 8 worker calls one after another after each settings change. The Phase 3 proof measured the slowest single `runBench` at 11 ms in Node; the browser number is unknown.
+- The verbatim prize text of the three honorary tracks is not in the repo record (DELIVERY.md says so).
+
+### Close-out against the spec
+- Unverified, needs the runner: `npm run build`, `npm test`, `npm run proof` (the `roll-call` README block still reads "Not run"), all live checks (360/768/1280 px, Lighthouse, `og:image`, CSP header).
+- Deviation: the claim band replaced the existing cell A label text instead of adding a second label (`components/exposure-bench.tsx`, cell A `CardLabel number={1}`); see Decisions.
+- Deviation: `lib/adapter.ts` gained `sampleSubject`, a file outside the A1 list; see Decisions.
+- Deviation: the "loaded line" in `upload-cell.tsx` (`UploadLoadedState`) shows no file name, so only `{issue.file}` carries `break-all` plus `title`.
+- Note: `scripts/proof.ts` writes `rollCall()` into the `roll-call` markers; its numbers are not in README until the runner runs it.
+- Commit plan: the claim band (A4) shares `components/exposure-bench.tsx` with the roll call (A1), and commits take whole files, so `.farm-commits.json` folds A4 into the first commit's message rather than listing an empty commit. Five entries instead of six.
+
+### Next best step
+Phase 5 frontend pass: kit signature 2 (the draggable zone center bound to `centerOffset`, so dragging it moves cell B and the roll call), then the screenshot review at 360, 768 and 1280 px.
