@@ -52,13 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main className="mx-auto max-w-[82.5rem] px-5 pb-20 pt-8 lg:px-10">{children}</main>
         <footer className="border-t border-border">
-          <div className="mx-auto flex max-w-[82.5rem] flex-col gap-2 px-5 py-8 text-xs text-muted-foreground lg:px-10">
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-              <p>Velatum. Built for SafeSpace Hacks 2026 by a student team.</p>
-              <p>Every sample runner is synthetic and lives on a fictional grid at 0°N 0°E.</p>
-            </div>
-            <p className="flex flex-wrap items-center gap-x-4">
-              <span>No wallet, no contract, no account. Source and security notes:</span>
+          <div className="mx-auto flex max-w-[82.5rem] flex-col gap-2 px-5 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-10">
+            <p className="max-w-[68ch]">Velatum: every sample runner is synthetic and lives on a fictional grid at 0°N 0°E.</p>
+            <div className="flex flex-wrap items-center gap-x-4">
               <a href="https://github.com/mericcintosun/velatum" target="_blank" rel="noopener noreferrer" className={FOOTER_LINK}>
                 Source on GitHub
               </a>
@@ -70,7 +66,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 SECURITY.md
               </a>
-            </p>
+              <a href="https://safespace-hacks.devpost.com/" target="_blank" rel="noopener noreferrer" className={FOOTER_LINK}>
+                SafeSpace Hacks
+              </a>
+            </div>
           </div>
         </footer>
       </body>

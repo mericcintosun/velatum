@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { createBenchAdapter, sampleSubject } from "@/lib/adapter";
-import { maxOffset, type DefenseSettings, type Verdict } from "@/lib/attack";
+import { maxOffset, zoneAngle, type DefenseSettings, type Verdict } from "@/lib/attack";
 import { DEFENSE_LIMITS, DEFENSE_PRESETS, type BenchParams } from "@/lib/data";
 import { formatMeters, planeFor, type Track, type XY } from "@/lib/geo";
 import { serializeGpx } from "@/lib/gpx";
@@ -105,6 +105,8 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
   const [runnerPicks, setRunnerPicks] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
+  // Cell F hover-expand: the runner whose habit line is shown in full.
+  const [expanded, setExpanded] = useState<string | null>(null);
   const downloadBusy = useRef(false);
   const measured = useDeferredValue(settings);
 
@@ -229,19 +231,26 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
           <CardLabel number={1}>Velatum, for people who share their runs and rides</CardLabel>
           <h1 className="text-4xl leading-[1.05] sm:text-5xl">Does your privacy zone actually hide your front door?</h1>
           <p className="max-w-[68ch] text-sm leading-relaxed text-muted-foreground">
-            Velatum runs the two published home-finding attacks on running and riding recordings, inside this tab, and tells you
-            how many meters they miss by. A sample runner is already loaded.
+            Two published attacks run on these recordings in this tab and report how far they miss.
           </p>
-          <a
-            href="/?runner=maya"
-            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-gold underline-offset-4 hover:text-foreground"
-          >
-            Start with the sample runner Maya
-          </a>
+          {/* The page's one primary CTA. A plain anchor, so the full load resets the bench to Maya. */}
+          <Button asChild className="min-h-11 max-w-full self-start whitespace-normal">
+            <a href="/?runner=maya">Start with the sample runner Maya</a>
+          </Button>
         </div>
         <figure className="space-y-3">
           <div className="overflow-x-auto border border-border">
-            <TracePlot tracks={subject.xy} result={stale ? null : result} referenceLabel={subject.referenceLabel} />
+            <TracePlot
+              tracks={subject.xy}
+              result={stale ? null : result}
+              referenceLabel={subject.referenceLabel}
+              home={stale ? null : result.reference}
+              angle={zoneAngle(subject.seed)}
+              zoneRadius={settings.zoneRadius}
+              centerOffset={settings.centerOffset}
+              offsetMax={offsetMax}
+              onOffset={(v) => update({ centerOffset: v })}
+            />
           </div>
           <figcaption className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
@@ -265,6 +274,11 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
             <li className="flex items-center gap-2">
               <span className="inline-block h-px w-4 bg-border" /> Hidden by the zone
             </li>
+            {zoneOn && (
+              <li className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 border border-gold bg-background" /> Drag the handle to move the zone center
+              </li>
+            )}
           </ul>
         </figure>
       </Card>
@@ -288,7 +302,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
       <Card className="velatum-enter flex flex-col gap-6 p-6 lg:col-span-5 lg:col-start-8 lg:row-span-2">
         <div className="space-y-2">
           <CardLabel number={3}>Defenses</CardLabel>
-          <h2 className="text-3xl">Move a slider, the attack runs again</h2>
+          <h2 className="text-2xl sm:text-3xl">Move a slider, the attack runs again</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {DEFENSE_PRESETS.map((p) => (
@@ -320,7 +334,6 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               value={settings.zoneRadius}
               onChange={(e) => update({ zoneRadius: Number(e.target.value) })}
             />
-            <span className="block text-xs text-muted-foreground">Everything this close to the center is cut from the shared file.</span>
           </label>
 
           <label className="block space-y-1">
@@ -338,9 +351,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               onChange={(e) => update({ centerOffset: Number(e.target.value) })}
             />
             <span className="block text-xs text-muted-foreground">
-              {zoneOn
-                ? `Secret random direction. Capped at ${formatMeters(offsetMax)} so home stays inside the zone.`
-                : "Turn on a privacy zone first."}
+              {zoneOn ? "Drag the gold handle on Fig. 1 or use this slider." : "Turn on a privacy zone first."}
             </span>
           </label>
 
@@ -358,10 +369,19 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               disabled={!zoneOn}
               onChange={(e) => update({ extraTrim: Number(e.target.value) })}
             />
-            <span className="block text-xs text-muted-foreground">
-              Each recording loses a different length after leaving the zone, so the exits stop lining up on one circle.
-            </span>
           </label>
+
+          <details className="border border-gold">
+            <summary className="flex min-h-11 items-center px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary focus-visible:outline-1 focus-visible:outline-ring">
+              What each slider does
+            </summary>
+            <ul className="max-w-[68ch] space-y-2 border-t border-border px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+              <li>Radius: every point inside the circle is cut from the shared file.</li>
+              <li>Center: moves the circle along one secret direction, never so far that home leaves it.</li>
+              <li>Extra cut: each recording loses a different length, so the exits stop lining up on one circle.</li>
+              <li>The download writes no device, author or app metadata.</li>
+            </ul>
+          </details>
         </div>
 
         <div className="mt-auto space-y-3 border-t border-border pt-5">
@@ -373,26 +393,22 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
           >
             {downloadLabel}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            {zoneOn
-              ? "One file with every recording as measured above. No device, author or app metadata is written."
-              : "Set a privacy zone to produce a cleaned file."}
-          </p>
+          {!zoneOn && <p className="text-xs text-muted-foreground">Set a privacy zone to produce a cleaned file.</p>}
           {downloadFailed && <DownloadErrorState onRetry={guardDownload} />}
         </div>
       </Card>
 
-      {/* Cell D: the one primary call to action, with staged reading, error and empty states. */}
+      {/* Cell D: the CTA cell for your own files, with staged reading, error and empty states. */}
       <UploadCell onLoaded={onLoaded} onForget={onForget} uploadActive={source.kind === "upload"} resetKey={runnerPicks} />
 
       {/* Cell E: pure image. */}
-      <Card className="velatum-enter flex flex-col justify-between gap-3 p-4 lg:col-span-3">{imageCell}</Card>
+      <Card className="velatum-enter overflow-hidden p-0 lg:col-span-3">{imageCell}</Card>
 
-      {/* Cell F: the seeded runners. */}
+      {/* Cell F: the seeded runners, the L4 hover-expand cell. */}
       <Card className="velatum-enter flex flex-col gap-4 p-6 lg:col-span-12">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div className="space-y-2">
           <CardLabel number={6}>Sample runners, all synthetic</CardLabel>
-          <p className="text-xs text-muted-foreground">Homes sit on a fictional street grid at 0°N 0°E, so none is a real doorstep.</p>
+          <h2 className="text-2xl sm:text-3xl">Roll call at these settings</h2>
         </div>
         {runners.length === 0 ? (
           <RunnersEmptyState />
@@ -428,32 +444,49 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
                 The roll call covers the sample runners only; your files are measured in cell 2.
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
-              {runners.map((r) => {
-                const active = source.kind === "sample" && source.runnerId === r.id;
-                return (
-                  <Button
-                    key={r.id}
-                    variant="outline"
-                    aria-pressed={active}
-                    className={cn(
-                      "h-auto min-h-11 max-w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left",
-                      active && "border-primary bg-secondary"
-                    )}
-                    onClick={() => {
-                      setSource({ kind: "sample", runnerId: r.id });
-                      setRunnerPicks((n) => n + 1);
-                    }}
-                  >
-                    <span>
-                      {r.name} · {r.activities} {r.sport === "run" ? "runs" : "rides"}
-                    </span>
-                    <span className="text-[11px] font-normal normal-case tracking-normal text-muted-foreground">{r.habit}</span>
-                    <RollCallLine row={rollRows.get(r.id)} loading={rollCall.status !== "ready"} />
-                  </Button>
-                );
-              })}
-            </div>
+            <MotionConfig reducedMotion="user">
+              <div className="flex flex-wrap items-start gap-2">
+                {runners.map((r) => {
+                  const active = source.kind === "sample" && source.runnerId === r.id;
+                  const open = expanded === r.id;
+                  return (
+                    <Button
+                      key={r.id}
+                      variant="outline"
+                      aria-pressed={active}
+                      className={cn(
+                        "h-auto min-h-11 w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left sm:w-64",
+                        active && "border-primary bg-secondary"
+                      )}
+                      onPointerEnter={() => setExpanded(r.id)}
+                      onPointerLeave={() => setExpanded((cur) => (cur === r.id ? null : cur))}
+                      onFocus={() => setExpanded(r.id)}
+                      onBlur={() => setExpanded((cur) => (cur === r.id ? null : cur))}
+                      onClick={() => {
+                        setSource({ kind: "sample", runnerId: r.id });
+                        setRunnerPicks((n) => n + 1);
+                      }}
+                    >
+                      <span>
+                        {r.name} · {r.activities} {r.sport === "run" ? "runs" : "rides"}
+                      </span>
+                      {/* The full habit is always in the DOM; only the clamp changes, and motion animates the height. */}
+                      <motion.span
+                        layout
+                        transition={{ duration: 0.28, ease: "linear" }}
+                        className={cn(
+                          "text-[11px] font-normal normal-case tracking-normal text-muted-foreground",
+                          open ? "line-clamp-none" : "line-clamp-1"
+                        )}
+                      >
+                        {r.habit}
+                      </motion.span>
+                      <RollCallLine row={rollRows.get(r.id)} loading={rollCall.status !== "ready"} />
+                    </Button>
+                  );
+                })}
+              </div>
+            </MotionConfig>
           </>
         )}
       </Card>

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { AnimatePresence, MotionConfig, motion, type Variants } from "motion/react";
+import { SceneSlot } from "@/components/scene-slot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
@@ -127,10 +128,13 @@ export function UploadLoadedState({ fileCount }: { fileCount: number }) {
 export function UploadEmptyState({ onTryBroken }: { onTryBroken: () => void }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        No files checked yet. Choose three or more GPX files above and their distance replaces the sample runner in cell 2.
-        They never leave this tab.
-      </p>
+      <SceneSlot n={5}
+        alt="A stack of paper route sheets on a plinth under a thin gold frame, one sheet lifted toward the viewer"
+        width={640}
+        height={600}
+        className="mx-auto max-w-[220px] border border-border"
+      />
+      <p className="text-xs leading-relaxed text-muted-foreground">No files yet; yours would replace the sample runner in cell 2.</p>
       <Button variant="link" size="sm" className="h-auto min-h-11 px-0" onClick={onTryBroken}>
         Try a broken file
       </Button>
@@ -138,7 +142,7 @@ export function UploadEmptyState({ onTryBroken }: { onTryBroken: () => void }) {
   );
 }
 
-/** Cell D: the one primary call to action. Kit signature 3 stages its states. */
+/** Cell D: the CTA cell for your own files (outline; the one primary CTA is Maya in cell A). Kit signature 3 stages its states. */
 export function UploadCell({ onLoaded, onForget, uploadActive, resetKey = 0 }: UploadCellProps) {
   const [issues, setIssues] = useState<ParseIssue[]>([]);
   const [reading, setReading] = useState(false);
@@ -239,10 +243,9 @@ export function UploadCell({ onLoaded, onForget, uploadActive, resetKey = 0 }: U
       onDrop={onDrop}
     >
       <CardLabel number={4}>Your own files</CardLabel>
-      <h2 className="text-3xl">Check your runs</h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Export three or more activities as GPX and drop them here. They are read by this page only: no upload, no account,
-        and the page&apos;s security policy blocks every outgoing request.
+      <h2 className="text-2xl sm:text-3xl">Check your runs</h2>
+      <p className="max-w-[68ch] text-sm leading-relaxed text-muted-foreground">
+        This page reads three or more GPX exports and sends nothing.
       </p>
       <Input
         ref={fileRef}
@@ -258,7 +261,7 @@ export function UploadCell({ onLoaded, onForget, uploadActive, resetKey = 0 }: U
           e.target.value = "";
         }}
       />
-      <Button size="lg" className="min-h-11 max-w-full whitespace-normal" onClick={openPicker} disabled={reading}>
+      <Button variant="outline" size="lg" className="min-h-11 max-w-full whitespace-normal" onClick={openPicker} disabled={reading}>
         {reading ? "Reading files" : "Choose GPX files"}
       </Button>
       {uploadActive && (

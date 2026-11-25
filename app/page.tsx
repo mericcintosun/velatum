@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ExposureBench } from "@/components/exposure-bench";
 import { SceneSlot } from "@/components/scene-slot";
-import { CardLabel } from "@/components/ui/card";
 import { getAdapterMode } from "@/lib/adapter-mode";
 import { parseBenchParams } from "@/lib/data";
 
@@ -23,21 +22,12 @@ export default async function Home({
       initial={initial}
       mode={mode}
       imageCell={
-        <>
-          <CardLabel number={5}>On display</CardLabel>
-          <figure className="space-y-2">
-            <SceneSlot
-              n={1}
-              alt="Two dozen running loops drawn in ink converge on a single small house, framed by a thin gold circle like an exhibit on a plinth"
-              width={960}
-              height={640}
-              className="border border-border"
-            />
-            <figcaption className="text-xs leading-relaxed text-muted-foreground">
-              Every loop begins at the same door. That repetition is the whole attack.
-            </figcaption>
-          </figure>
-        </>
+        <SceneSlot n={1}
+          alt="Two dozen running loops drawn in ink converge on a single small house, framed by a thin gold circle like an exhibit on a plinth"
+          width={960}
+          height={640}
+          className="h-full object-cover"
+        />
       }
     />
   );
