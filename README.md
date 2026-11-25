@@ -1,10 +1,26 @@
 # Velatum
 
-Drop in your run or ride recordings and Velatum shows you how someone would find your home from them. Then try hiding settings and watch the same attack miss by more and more meters. Your files never leave your device.
+Velatum shows how someone would find your home from the run and ride recordings you share, then measures how far each hiding setting throws that guess off. People who post their activities publicly trust a privacy zone to hide their front door, and nobody gives them a way to check that it does.
 
-The judged click path is in DEMO.md.
+Live: https://velatum.vercel.app/?runner=maya. Start at DEMO.md step 1.
 
-> Live demo: https://velatum.vercel.app
+The live URL runs both attacks in your tab on synthetic sample runners; drop your own GPX files and they are measured the same way, and the files stay in this tab.
+
+## Try it in 60 seconds
+
+1. Open https://velatum.vercel.app/?runner=maya. The sample runner Maya is loaded on Fig. 1.
+2. Click "No zone" in cell 3 and read the distance in cell 2.
+3. Click "200 m zone". The gold circle appears around her home and cell 2 stays red.
+4. Drag the gold handle on Fig. 1 away from the home (or use the arrow keys on it), or click "Offset + ragged edge". The number in cell 2 climbs and the roll call in cell 6 is measured again.
+5. Click "Download cleaned GPX". One metadata-free file downloads, cut exactly as measured.
+
+## Addresses
+
+| What | Address |
+| --- | --- |
+| Live app | https://velatum.vercel.app |
+
+There is no contract, no chain and no server API that takes input.
 
 ## The problem
 
@@ -19,7 +35,24 @@ Velatum is one screen. You load your GPX files (or keep the synthetic sample run
 1. **Start and finish clustering.** DBSCAN (75 m radius, 3 points minimum) groups every start and finish point. The densest group's centroid is the guess for home.
 2. **Zone edge circle fit.** A privacy zone cuts everything within a fixed radius of its center, so the points where tracks reappear lie on a circle. RANSAC throws out the exits that do not fit, then a Kasa least-squares fit recovers the circle, and the hidden center with it.
 
-Then you defend. Three sliders: zone radius, how far to move the zone center away from home (in a secret random direction), and an extra random length cut from each recording. Every change re-runs both attacks and the big number updates: the distance from the closer guess to the home. When you are happy, you download the cleaned GPX, cut exactly as measured.
+Then you defend. Three sliders: zone radius, how far to move the zone center away from home (along one secret direction), and an extra random length cut from each recording. The zone center is also a gold handle on the plot that you can drag along that direction. Every change re-runs both attacks and the big number updates: the distance from the closer guess to the home. When you are happy, you download the cleaned GPX, cut exactly as measured.
+
+### Architecture
+
+```mermaid
+flowchart LR
+  page["app/page.tsx"] --> bench["components/exposure-bench.tsx"]
+  bench --> measure["components/use-measurement.ts"]
+  bench --> roll["components/use-roll-call.ts"]
+  measure --> adapter["lib/adapter.ts"]
+  roll --> adapter
+  adapter --> real["lib/adapter.real.ts"]
+  real --> worker["lib/bench.worker.ts"]
+  worker --> attack["lib/attack.ts"]
+  bench -.-> gpx["lib/gpx.ts"]
+  adapter -.-> synthetic["lib/synthetic.ts"]
+  adapter -.-> fixtures["fixtures/runners.json via lib/data/seed.ts"]
+```
 
 ### A safe outcome, step by step
 
@@ -27,7 +60,7 @@ Open the sample runner Maya (24 synthetic night runs) and follow the result card
 
 - **No zone.** The start and finish cluster lands a few meters from her door. Red card.
 - **200 m zone, centered on the door** (what most apps do). The circle fit recovers the hidden center almost exactly. Still red. The zone was not protecting her.
-- **Offset + ragged edge preset** (1 km zone, center moved 700 m, up to 400 m extra cut per recording). Both attacks now guess hundreds of meters away. The card turns green and the cleaned file downloads with those cuts.
+- **Offset + ragged edge preset** (1 km zone, center moved 700 m, up to 400 m extra cut per recording), or drag the gold handle yourself. Both attacks now guess hundreds of meters away. The card turns green and the cleaned file downloads with those cuts.
 
 Every sample state is encoded in the URL (`/?runner=maya&zone=1000&offset=700&trim=400`), so a judge can open the exact same measurement we did.
 
@@ -85,7 +118,7 @@ Measured by `npm run proof` on 2026-11-25 in Node with the same `runBench` the W
 
 | Check | Value | Budget |
 | --- | --- | --- |
-| Slowest `runBench` over 8 runners x 3 presets (Sofia M., 200 m zone) | 10 ms | 5000 ms |
+| Slowest `runBench` over 8 runners x 3 presets (Sofia M., 200 m zone) | 9 ms | 5000 ms |
 | Step 5 file size, Maya at "Offset + ragged edge" | 274221 bytes | none |
 | Step 5 file identical across two `serializeGpx` calls (sha256) | match `88c440f22d3f` | match |
 | Worst-case worker wait, 2000 ms x 2 attempts | 4000 ms | 5000 ms |
@@ -104,7 +137,7 @@ The bench runs in a Web Worker by default (`ADAPTER_MODE=real`). One worker atte
 | Step | File | Real path | Fallback |
 | --- | --- | --- | --- |
 | 1. Open Maya | `components/use-measurement.ts`, `lib/adapter.real.ts` | Seeded number from `measureNow`, then the worker | Main-thread `runBench` in `measureInWorker` |
-| 2 to 4. Presets and sliders | `components/use-measurement.ts`, `lib/adapter.real.ts` | Worker measure, latest wins, stale results hidden | Main-thread `runBench` after one retry |
+| 2 to 4. Presets, sliders and the zone handle | `components/use-measurement.ts`, `lib/adapter.real.ts`, `components/zone-handle.tsx` | Worker measure, latest wins, stale results hidden | Main-thread `runBench` after one retry |
 | 5. Download | `components/exposure-bench.tsx` (`guardDownload`) | GPX cut from the measurement on screen, disabled while pending or stale | `DownloadErrorState` with "Try the download again" |
 | 6. Your files | `components/upload-cell.tsx` | Read with DOMParser in the tab, staged states | `UploadErrorState` with "Choose other files" |
 | 7. Evidence and limits | `components/result-cell.tsx`, `app/about/page.tsx` | Evidence dialog and limitation list | `LimitationsEmptyState` links back to Maya; `app/error.tsx` covers both routes |
@@ -118,34 +151,33 @@ The bench runs in a Web Worker by default (`ADAPTER_MODE=real`). One worker atte
 - All demo data is synthetic. Sample homes sit on a fictional street grid at 0°N 0°E, in open sea, so no demo coordinate is anyone's address.
 - Uploaded files never reach the URL. For your own files there is no known "true home", so Velatum measures from the raw-file guess and says so on screen.
 
-## How it uses the required tech
+## Prizes and required tech
 
-No prize track names a sponsor product; all four tracks are automatic entries in the overall ranking, so there is no bounty table and no sponsor integration.
+No prize track names a sponsor product; all four tracks are automatic entries in the overall ranking, so there is no bounty table and no sponsor integration. `portfolio.bounties` is empty. The track names are listed in DELIVERY.md.
 
-SafeSpace Hacks does not require a sponsor SDK. The core is our own code: a GPX reader and writer on the browser's DOMParser, a seeded synthetic runner generator, DBSCAN, the Kasa circle fit, RANSAC, and the defense model, all in `lib/`. Motion drives the one transition where the result card grows into the evidence view.
+The core is our own code: a GPX reader and writer on the browser's DOMParser, a seeded synthetic runner generator, DBSCAN, the Kasa circle fit, RANSAC, and the defense model, all in `lib/`.
 
 The bench runs in a Web Worker in your tab (`lib/bench.worker.ts`): every message is checked with zod, a hung worker is restarted once, and if it still fails the page computes the result itself and says so under the number.
 
 ## Tech stack
 
-- Next.js 15 (App Router), React 19, TypeScript (strict)
-- Tailwind CSS v4 with shadcn/ui-style primitives
-- Motion 14 (`motion/react`) for the shared-layout result transition and the staged upload states
+- Next.js 15 (App Router), React 19, TypeScript 5 (strict)
+- Tailwind CSS 4 with shadcn/ui-style primitives, lucide-react
+- Motion 14 (`motion/react`) for three interactions: the result number growing into the evidence dialog (shared layout), the draggable zone handle on Fig. 1 (pan gesture bound to the offset), and the staged upload and roll call states (`AnimatePresence`)
 - Hand-written DBSCAN, Kasa fit and RANSAC (no geometry or clustering library)
 - Web Worker (browser platform API) so the bench never blocks the page
 - zod 4 for worker message validation
-- Vitest 3 for the snapshot and property tests, tsx to run the proof script
-- Deployed on Vercel as a static-friendly app with a strict CSP
+- Vitest 3 for the snapshot and property tests, tsx 4 to run the proof script
+- Deployed on Vercel with a strict CSP
 
 ## Quickstart
 
 ```bash
 npm install
-npm run dev
-# open http://localhost:3000
-npm test          # snapshot and property tests over the seeded runners
-npm run proof     # measures the runners and rewrites the Measured results blocks
-npm run demo:reset  # checks the seed is deterministic and prints the demo start route
+npm run dev          # open http://localhost:3000
+npm test             # snapshot and property tests over the seeded runners
+npm run proof        # measures the runners and rewrites the Measured results blocks
+npm run demo:reset   # checks the seed is deterministic and prints the demo start route
 ```
 
 No environment variables are needed. `npm run build && npm start` runs the production build with the CSP enabled.
@@ -154,7 +186,7 @@ No environment variables are needed. `npm run build && npm start` runs the produ
 
 Built during SafeSpace Hacks: everything in `lib/` (GPX reader and writer, synthetic generator, both attacks, defenses), every component in `components/` except the primitive patterns, all pages and copy, and the illustrations.
 
-Pre-existing and credited: Next.js, React, Tailwind CSS, the shadcn/ui primitive patterns in `components/ui/`, Motion, and the Cormorant Garamond and Mulish typefaces from Google Fonts. The attack ideas come from Hassan et al. (USENIX Security 2018) and Dhondt et al. (ACM CCS 2022).
+Pre-existing and credited: Next.js, React, Tailwind CSS, the shadcn/ui primitive patterns in `components/ui/`, Motion, zod, lucide-react, and the Cormorant Garamond and Mulish typefaces from Google Fonts. The attack ideas come from Hassan et al. (USENIX Security 2018) and Dhondt et al. (ACM CCS 2022).
 
 ## What we would build next
 
@@ -165,6 +197,10 @@ Pre-existing and credited: Next.js, React, Tailwind CSS, the shadcn/ui primitive
 
 ## AI use
 
-<!-- AI use disclosure: adjust to the hackathon's rules before submitting. -->
+The hackathon's policy, as the record states it: "AI tools may be used; AI assistance must be named in the credits."
 
-We used AI coding assistants for scaffolding and boilerplate. Architecture, product decisions, and final code review are our own.
+AI coding agents (Claude Code) drafted much of the code and documentation from the builder's specifications. The builder chose the problem, directed and reviewed the changes, and ran the demo. The product itself calls no AI model.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
