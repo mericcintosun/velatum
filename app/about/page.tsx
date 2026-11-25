@@ -37,6 +37,19 @@ const BUILT = [
   ["AI assistance", "AI coding assistants helped with scaffolding and boilerplate. Architecture, the attack choices and the final review are ours."],
 ];
 
+function LimitationsEmptyState() {
+  return (
+    <div className="max-w-[68ch] space-y-4 border-l border-gold pl-4">
+      <p className="text-sm text-muted-foreground">
+        No limitations are listed in this build. The evidence view on the bench still names the distance leak it cannot measure.
+      </p>
+      <Button asChild variant="outline" size="sm">
+        <Link href="/?runner=maya">Open the sample runner Maya</Link>
+      </Button>
+    </div>
+  );
+}
+
 export default function AboutPage() {
   return (
     <article className="mx-auto max-w-5xl space-y-16 py-6">
@@ -159,13 +172,17 @@ export default function AboutPage() {
           <CardLabel number={6}>Limitations</CardLabel>
           <h2 className="text-4xl">What Velatum cannot see</h2>
         </div>
-        <ul className="max-w-[68ch] space-y-3 leading-relaxed">
-          {LIMITATIONS.map((l) => (
-            <li key={l} className="border-l border-gold pl-4 text-sm">
-              {l}
-            </li>
-          ))}
-        </ul>
+        {LIMITATIONS.length === 0 ? (
+          <LimitationsEmptyState />
+        ) : (
+          <ul className="max-w-[68ch] space-y-3 leading-relaxed">
+            {LIMITATIONS.map((l) => (
+              <li key={l} className="border-l border-gold pl-4 text-sm">
+                {l}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="space-y-6">
