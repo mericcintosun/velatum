@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { maxOffset, runBench, type DefenseSettings } from "@/lib/attack";
-import { BROKEN_GPX_SAMPLE, DEFENSE_LIMITS, DEFENSE_PRESETS, RUNNERS, getRunner, type BenchParams } from "@/lib/data";
+import { createBenchAdapter } from "@/lib/adapter";
+import { maxOffset, type DefenseSettings } from "@/lib/attack";
+import { BROKEN_GPX_SAMPLE, DEFENSE_LIMITS, DEFENSE_PRESETS, type BenchParams } from "@/lib/data";
 import { NULL_ISLAND, formatMeters, makePlane, planeFor, type Track, type XY } from "@/lib/geo";
 import { parseGpxFile, serializeGpx, type ParseIssue } from "@/lib/gpx";
-import { generateRunnerTracks } from "@/lib/synthetic";
+import type { AdapterMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Source =
@@ -23,6 +24,8 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 interface ExposureBenchProps {
   initial: BenchParams;
+  /** Chosen on the server from ADAPTER_MODE. "fake" is the seeded main-thread bench. */
+  mode: AdapterMode;
   /** The pure-image bento cell, rendered on the server and passed through. */
   imageCell: ReactNode;
 }
@@ -32,7 +35,9 @@ function normalize(next: DefenseSettings): DefenseSettings {
   return { ...next, centerOffset: Math.min(next.centerOffset, maxOffset(next.zoneRadius)) };
 }
 
-export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
+export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) {
+  const adapter = useMemo(() => createBenchAdapter(mode), [mode]);
+  const runners = useMemo(() => adapter.listRunners(), [adapter]);
   const [source, setSource] = useState<Source>({ kind: "sample", runnerId: initial.runnerId });
   const [settings, setSettings] = useState<DefenseSettings>(() =>
     normalize({ zoneRadius: initial.zone, centerOffset: initial.offset, extraTrim: initial.trim })
@@ -45,8 +50,7 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
 
   const subject = useMemo(() => {
     if (source.kind === "sample") {
-      const runner = getRunner(source.runnerId);
-      const tracks = generateRunnerTracks(runner);
+      const { profile: runner, tracks } = adapter.loadSample(source.runnerId);
       const plane = makePlane(NULL_ISLAND);
       return {
         tracks,
@@ -68,9 +72,12 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
       referenceLabel: "Raw-file guess",
       fileName: "velatum-cleaned.gpx",
     };
-  }, [source]);
+  }, [source, adapter]);
 
-  const result = useMemo(() => runBench(subject.xy, subject.trueHome, measured, subject.seed), [subject, measured]);
+  const result = useMemo(
+    () => adapter.measure(subject.xy, subject.trueHome, measured, subject.seed),
+    [adapter, subject, measured]
+  );
 
   // Shareable state: a sample result lives in the URL. Nothing about uploaded files ever does.
   useEffect(() => {
@@ -173,7 +180,7 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
           </p>
         </div>
         <figure className="space-y-3">
-          <div className="border border-border">
+          <div className="overflow-x-auto border border-border">
             <TracePlot tracks={subject.xy} result={result} referenceLabel={subject.referenceLabel} />
           </div>
           <figcaption className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -318,6 +325,7 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
           type="file"
           accept=".gpx,application/gpx+xml"
           multiple
+          aria-label="GPX files to check"
           className="sr-only"
           tabIndex={-1}
           aria-hidden="true"
@@ -347,6 +355,11 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
             </Button>
           )}
         </div>
+        {source.kind === "sample" && issues.length === 0 && (
+          <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+            No files checked yet. Your results replace the sample runner and never leave this tab.
+          </p>
+        )}
         {issues.length > 0 && (
           <ul className="space-y-2 border-t border-border pt-3" aria-live="polite">
             {issues.map((issue, i) => (
@@ -372,8 +385,11 @@ export function ExposureBench({ initial, imageCell }: ExposureBenchProps) {
           <CardLabel number={6}>Sample runners, all synthetic</CardLabel>
           <p className="text-xs text-muted-foreground">Homes sit on a fictional street grid at 0°N 0°E, so none is a real doorstep.</p>
         </div>
+        {runners.length === 0 && (
+          <p className="text-sm text-muted-foreground">No sample runners are loaded. Drop your own GPX files in cell 4.</p>
+        )}
         <div className="flex flex-wrap gap-2">
-          {RUNNERS.map((r) => {
+          {runners.map((r) => {
             const active = source.kind === "sample" && source.runnerId === r.id;
             return (
               <Button

@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import { ExposureBench } from "@/components/exposure-bench";
 import { SceneSlot } from "@/components/scene-slot";
 import { CardLabel } from "@/components/ui/card";
+import { getAdapterMode } from "@/lib/adapter-mode";
 import { parseBenchParams } from "@/lib/data";
+
+export const metadata: Metadata = { title: "Home exposure bench" };
 
 // S1 single-surface: the home route IS the tool. L4 bento: six unequal cells, the claim
 // inside the largest one, no lead paragraph above the grid. State lives in the URL
@@ -12,10 +16,12 @@ export default async function Home({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const initial = parseBenchParams(await searchParams);
+  const mode = getAdapterMode();
 
   return (
     <ExposureBench
       initial={initial}
+      mode={mode}
       imageCell={
         <>
           <CardLabel number={5}>On display</CardLabel>

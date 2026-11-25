@@ -1,0 +1,37 @@
+{
+  "runners": [
+    {
+      "id": "aylin",
+      "activities": 18
+    },
+    {
+      "id": "elif",
+      "activities": 14
+    },
+    {
+      "id": "jonas",
+      "activities": 12
+    },
+    {
+      "id": "kerem",
+      "activities": 16
+    },
+    {
+      "id": "maya",
+      "activities": 24
+    },
+    {
+      "id": "priya",
+      "activities": 20
+    },
+    {
+      "id": "sofia",
+      "activities": 30
+    },
+    {
+      "id": "tomas",
+      "activities": 10
+    }
+  ],
+  "totalActivities": 144
+}
