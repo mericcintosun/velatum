@@ -12,8 +12,10 @@ export default function BenchErrorState({ reset }: { error: Error & { digest?: s
       <p className="font-display text-5xl font-semibold tracking-wide">Velatum</p>
       <h1 className="text-3xl">The bench stopped. Your files were not sent anywhere.</h1>
       <div className="flex flex-wrap items-center justify-center gap-4">
-        <Button onClick={() => reset()}>Try again</Button>
-        <Button asChild variant="outline">
+        <Button className="min-h-11" onClick={() => reset()}>
+          Try again
+        </Button>
+        <Button asChild variant="outline" className="min-h-11 max-w-full whitespace-normal">
           <Link href="/?runner=maya">Open the sample runner Maya</Link>
         </Button>
       </div>

@@ -82,3 +82,5 @@ Rules:
 - every interaction is driven by the real seed data; a decorative animation with no product meaning does not count as a signature
 
 ## Amendments (append-only; later phases add dated lines here, never edit anything above)
+
+- 2026-11-25: below md the header's one link and one action sit in a disclosure; the mark stays outside it.

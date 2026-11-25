@@ -53,8 +53,11 @@ function IssueList({ issues }: { issues: ParseIssue[] }) {
           <Badge variant={issue.level === "error" ? "bad" : "warn"} className="shrink-0">
             {issue.level}
           </Badge>
-          <span>
-            <span className="font-semibold">{issue.file}:</span> {issue.message}
+          <span className="min-w-0">
+            <span className="break-all font-semibold" title={issue.file}>
+              {issue.file}:
+            </span>{" "}
+            {issue.message}
           </span>
         </motion.li>
       ))}
@@ -90,11 +93,11 @@ export function UploadErrorState({
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-bad">These files could not be checked</p>
       <IssueList issues={issues} />
       <div className="flex flex-wrap gap-x-4 gap-y-2">
-        <Button variant="outline" size="sm" onClick={onChooseOther}>
+        <Button variant="outline" size="sm" className="min-h-11" onClick={onChooseOther}>
           Choose other files
         </Button>
         {onBackToSample && (
-          <Button variant="link" size="sm" className="h-auto px-0" onClick={onBackToSample}>
+          <Button variant="link" size="sm" className="h-auto min-h-11 px-0" onClick={onBackToSample}>
             Back to the sample runner
           </Button>
         )}
@@ -125,9 +128,10 @@ export function UploadEmptyState({ onTryBroken }: { onTryBroken: () => void }) {
   return (
     <div className="space-y-2">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        No files checked yet. Your results replace the sample runner and never leave this tab.
+        No files checked yet. Choose three or more GPX files above and their distance replaces the sample runner in cell 2.
+        They never leave this tab.
       </p>
-      <Button variant="link" size="sm" className="h-auto px-0" onClick={onTryBroken}>
+      <Button variant="link" size="sm" className="h-auto min-h-11 px-0" onClick={onTryBroken}>
         Try a broken file
       </Button>
     </div>
@@ -254,11 +258,11 @@ export function UploadCell({ onLoaded, onForget, uploadActive, resetKey = 0 }: U
           e.target.value = "";
         }}
       />
-      <Button size="lg" onClick={openPicker} disabled={reading}>
+      <Button size="lg" className="min-h-11 max-w-full whitespace-normal" onClick={openPicker} disabled={reading}>
         {reading ? "Reading files" : "Choose GPX files"}
       </Button>
       {uploadActive && (
-        <Button variant="link" size="sm" className="h-auto self-start px-0" onClick={forget}>
+        <Button variant="link" size="sm" className="h-auto min-h-11 self-start px-0" onClick={forget}>
           Forget my files
         </Button>
       )}

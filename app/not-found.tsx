@@ -16,7 +16,7 @@ export default function NotFound() {
       <p className="text-sm leading-relaxed text-muted-foreground">
         This address shows nothing. The bench with the sample runner Maya is one click away.
       </p>
-      <Button asChild variant="outline">
+      <Button asChild variant="outline" className="min-h-11">
         <Link href="/?runner=maya">Back to the bench</Link>
       </Button>
     </section>

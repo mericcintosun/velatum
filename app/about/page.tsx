@@ -43,7 +43,7 @@ function LimitationsEmptyState() {
       <p className="text-sm text-muted-foreground">
         No limitations are listed in this build. The evidence view on the bench still names the distance leak it cannot measure.
       </p>
-      <Button asChild variant="outline" size="sm">
+      <Button asChild variant="outline" size="sm" className="min-h-11">
         <Link href="/?runner=maya">Open the sample runner Maya</Link>
       </Button>
     </div>
@@ -56,7 +56,7 @@ export default function AboutPage() {
       <header className="grid gap-10 lg:grid-cols-12 lg:items-end">
         <div className="space-y-5 lg:col-span-7">
           <CardLabel number={1}>Why it exists</CardLabel>
-          <h1 className="text-5xl leading-[1.05]">A privacy zone you cannot test is a promise, not a protection</h1>
+          <h1 className="text-4xl leading-[1.05] sm:text-5xl">A privacy zone you cannot test is a promise, not a protection</h1>
           <p className="max-w-[68ch] leading-relaxed text-muted-foreground">
             Runners and riders share recordings publicly, and most of those recordings start and stop at the front door. Fitness
             apps offer a privacy zone that hides the first and last stretch. Researchers have shown, twice, that the hidden spot
@@ -87,7 +87,7 @@ export default function AboutPage() {
             begin on the same doorstep, the doorstep is the answer.
           </p>
           <details className="group border-t border-border pt-4">
-            <summary className="text-sm font-semibold text-primary underline decoration-gold underline-offset-4">
+            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-primary underline decoration-gold underline-offset-4">
               Read what the research found
             </summary>
             <div className="mt-4 space-y-4 text-sm text-muted-foreground">
@@ -147,7 +147,7 @@ export default function AboutPage() {
             offset and ragged-edge preset and both guesses land hundreds of meters away. The result card turns green, the link in
             the address bar reproduces the exact numbers, and the cleaned file downloads with the same cuts.
           </p>
-          <Button asChild>
+          <Button asChild className="min-h-11 max-w-full whitespace-normal">
             <Link href="/?runner=maya&zone=200&offset=0&trim=0">Open Maya with a 200 m zone</Link>
           </Button>
         </div>

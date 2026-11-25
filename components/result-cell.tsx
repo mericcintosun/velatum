@@ -147,7 +147,7 @@ export function ResultCell({ measurement, pending = false, settings, subjectLabe
                 {sourceLine} Before any defense: {m(result.baseline.error)}.
               </p>
             </div>
-            <Button variant="outline" className="self-start" onClick={() => setOpen(true)}>
+            <Button variant="outline" className="min-h-11 self-start" onClick={() => setOpen(true)}>
               Open the evidence
             </Button>
           </motion.div>
@@ -188,7 +188,7 @@ export function ResultCell({ measurement, pending = false, settings, subjectLabe
                     {referenceLabel.toLowerCase()}, down from {m(result.baseline.error)}
                   </h2>
                 </div>
-                <Button ref={closeRef} variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                <Button ref={closeRef} variant="ghost" size="sm" className="min-h-11 min-w-11" onClick={() => setOpen(false)}>
                   Close
                 </Button>
               </div>
