@@ -5,9 +5,11 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardLabel } from "@/components/ui/card";
-import type { BenchResult, DefenseSettings, Verdict } from "@/lib/attack";
+import type { DefenseSettings, Verdict } from "@/lib/attack";
 import { SAFETY_STEPS } from "@/lib/data";
+import { BENCH_HINTS } from "@/lib/errors";
 import { formatMeters } from "@/lib/geo";
+import type { Measurement } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const VERDICT_COPY: Record<Verdict, { tag: string; line: string; tone: "bad" | "warn" | "ok" | "outline" }> = {
@@ -30,7 +32,9 @@ const TONE_TEXT = { bad: "text-bad", warn: "text-warn", ok: "text-ok", outline: 
 const TONE_BORDER = { bad: "border-bad", warn: "border-warn", ok: "border-ok", outline: "border-border" } as const;
 
 interface ResultCellProps {
-  result: BenchResult;
+  measurement: Measurement;
+  /** True while a newer measurement is on its way; the shown number is the last finished one. */
+  pending?: boolean;
   settings: DefenseSettings;
   subjectLabel: string;
   referenceLabel: string;
@@ -40,11 +44,43 @@ function m(v: number | null): string {
   return v === null ? "no guess" : formatMeters(v);
 }
 
+/** One line under the number that names the engine that produced it. Switches on codes, never on text. */
+function EngineLine({ measurement, pending }: { measurement: Measurement; pending: boolean }) {
+  if (pending) {
+    return <p className="font-sans text-xs text-muted-foreground">Measuring in this tab. Sample runners are synthetic.</p>;
+  }
+  switch (measurement.engine) {
+    case "worker":
+      return (
+        <p className="font-sans text-xs text-muted-foreground">
+          Measured in this tab by a background worker in {Math.max(1, Math.round(measurement.ms))} ms. Sample runners are synthetic.
+        </p>
+      );
+    case "main-thread":
+      return (
+        <p className="font-sans text-xs text-muted-foreground">
+          Measured on the page&apos;s main thread (sample bench mode, the background worker is off in this build). Sample runners
+          are synthetic.
+        </p>
+      );
+    case "main-thread-fallback": {
+      const code = measurement.fallback?.error ?? "worker-error";
+      return (
+        <div className="flex flex-wrap items-center gap-2 font-sans text-xs text-muted-foreground" data-fallback={code}>
+          <Badge variant="warn">Worker fallback</Badge>
+          <span>{measurement.fallback?.hint ?? BENCH_HINTS[code]}</span>
+        </div>
+      );
+    }
+  }
+}
+
 /**
  * Kit signature 1 (shared-layout transition): the summary number grows from its bento
  * cell into the evidence view through one layoutId, with no cut, and shrinks back.
  */
-export function ResultCell({ result, settings, subjectLabel, referenceLabel }: ResultCellProps) {
+export function ResultCell({ measurement, pending = false, settings, subjectLabel, referenceLabel }: ResultCellProps) {
+  const result = measurement.result;
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const copy = VERDICT_COPY[result.verdict];
@@ -81,6 +117,7 @@ export function ResultCell({ result, settings, subjectLabel, referenceLabel }: R
               <p className={cn("font-display text-7xl font-semibold leading-none", TONE_TEXT[copy.tone])} aria-live="polite">
                 {headline === null ? "None" : formatMeters(headline)}
               </p>
+              <EngineLine measurement={measurement} pending={pending} />
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant={copy.tone}>{copy.tag}</Badge>
                 <p className="text-sm">{copy.line}</p>

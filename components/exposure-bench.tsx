@@ -3,6 +3,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { ResultCell } from "@/components/result-cell";
 import { TracePlot } from "@/components/trace-plot";
+import { useMeasurement } from "@/components/use-measurement";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
@@ -74,10 +75,9 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
     };
   }, [source, adapter]);
 
-  const result = useMemo(
-    () => adapter.measure(subject.xy, subject.trueHome, measured, subject.seed),
-    [adapter, subject, measured]
-  );
+  // The same hook for both adapters: fake measures on the main thread, real in a Web Worker.
+  const { measurement, pending } = useMeasurement(adapter, subject, measured);
+  const result = measurement.result;
 
   // Shareable state: a sample result lives in the URL. Nothing about uploaded files ever does.
   useEffect(() => {
@@ -211,7 +211,13 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
 
       {/* Cell B: the result summary, which grows into the evidence view. */}
       <Card className="velatum-enter p-0 lg:col-span-5 lg:col-start-8">
-        <ResultCell result={result} settings={measured} subjectLabel={subject.label} referenceLabel={subject.referenceLabel} />
+        <ResultCell
+          measurement={measurement}
+          pending={pending}
+          settings={measured}
+          subjectLabel={subject.label}
+          referenceLabel={subject.referenceLabel}
+        />
       </Card>
 
       {/* Cell C: the defenses. */}
