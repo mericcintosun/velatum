@@ -65,10 +65,39 @@ Headline distance from the closer guess to each synthetic sample home, measured 
 <!-- PROOF:END bench-runners -->
 
 <!-- PROOF:BEGIN bench-tests -->
-`npm test` on 2026-11-25: 14 passed, 0 failed.
+`npm test` on 2026-11-25: 16 passed, 0 failed.
 
 Worker latency is measured in the browser and shown under the result; this script does not measure it.
 <!-- PROOF:END bench-tests -->
+
+<!-- PROOF:BEGIN demo-path -->
+Measured by `npm run proof` on 2026-11-25 in Node with the same `runBench` the Web Worker runs.
+
+| Check | Value | Budget |
+| --- | --- | --- |
+| Slowest `runBench` over 8 runners x 3 presets (Maya R., 200 m zone) | 11 ms | 5000 ms |
+| Step 5 file size, Maya at "Offset + ragged edge" | 274221 bytes | none |
+| Step 5 file identical across two `serializeGpx` calls (sha256) | match `88c440f22d3f` | match |
+| Worst-case worker wait, 2000 ms x 2 attempts | 4000 ms | 5000 ms |
+<!-- PROOF:END demo-path -->
+
+## Data, reset and fallbacks
+
+Velatum has no store. Every demo step only reads seeded or computed data: the synthetic runners come from `fixtures/runners.json` through `lib/data/seed.ts`, and everything else lives in memory in your tab. Uploaded tracks are never written to `localStorage`, `sessionStorage`, IndexedDB or a server, so closing the tab forgets them.
+
+Migrations: none, there is no database.
+
+`npm run demo:reset` runs the seed script twice, checks that both runs write the same `fixtures/seed-manifest.json` (sha256), prints the hash and the start route `/?runner=maya`. Nothing else holds demo state.
+
+The bench runs in a Web Worker by default (`ADAPTER_MODE=real`). One worker attempt may take 2 seconds, it is retried once on a fresh worker, and then the page computes the result itself, so no step waits longer than 5 seconds. `ADAPTER_MODE=fake` forces the main-thread bench.
+
+| Step | File | Real path | Fallback |
+| --- | --- | --- | --- |
+| 1. Open Maya | `components/use-measurement.ts`, `lib/adapter.real.ts` | Seeded number from `measureNow`, then the worker | Main-thread `runBench` in `measureInWorker` |
+| 2 to 4. Presets and sliders | `components/use-measurement.ts`, `lib/adapter.real.ts` | Worker measure, latest wins, stale results hidden | Main-thread `runBench` after one retry |
+| 5. Download | `components/exposure-bench.tsx` (`guardDownload`) | GPX cut from the measurement on screen, disabled while pending or stale | `DownloadErrorState` with "Try the download again" |
+| 6. Your files | `components/upload-cell.tsx` | Read with DOMParser in the tab, staged states | `UploadErrorState` with "Choose other files" |
+| 7. Evidence and limits | `components/result-cell.tsx`, `app/about/page.tsx` | Evidence dialog and limitation list | `LimitationsEmptyState` links back to Maya; `app/error.tsx` covers both routes |
 
 ## Trust and responsible design
 
@@ -88,7 +117,7 @@ The bench runs in a Web Worker in your tab (`lib/bench.worker.ts`): every messag
 
 - Next.js 15 (App Router), React 19, TypeScript (strict)
 - Tailwind CSS v4 with shadcn/ui-style primitives
-- Motion (`motion/react`) for the shared-layout result transition
+- Motion 14 (`motion/react`) for the shared-layout result transition and the staged upload states
 - Hand-written DBSCAN, Kasa fit and RANSAC (no geometry or clustering library)
 - Web Worker (browser platform API) so the bench never blocks the page
 - zod 4 for worker message validation
@@ -103,6 +132,7 @@ npm run dev
 # open http://localhost:3000
 npm test          # snapshot and property tests over the seeded runners
 npm run proof     # measures the runners and rewrites the Measured results blocks
+npm run demo:reset  # checks the seed is deterministic and prints the demo start route
 ```
 
 No environment variables are needed. `npm run build && npm start` runs the production build with the CSP enabled.

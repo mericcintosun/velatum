@@ -26,9 +26,20 @@ Maya is a seeded synthetic runner (`fixtures/runners.json`, id `maya`). Her home
 
 ## Seams
 
-- Adapter: `lib/adapter.ts` (mode chosen on the server by `lib/adapter-mode.ts`, env `ADAPTER_MODE`)
+- Adapter: `lib/adapter.ts` (mode chosen on the server by `lib/adapter-mode.ts`, env `ADAPTER_MODE`, default `real`)
 - Seed: `lib/data/seed.ts` (reads `fixtures/runners.json`; `npm run seed` validates it and writes `fixtures/seed-manifest.json`)
 - API: `app/api/runners/route.ts` (public synthetic profiles only; the page never calls it)
 - Tokens: `app/globals.css`
 - Worker: lib/bench.worker.ts via lib/adapter.real.ts
 - Proof: npm run proof
+- Reset: npm run demo:reset (no store, no chain; close the tab to forget uploaded files)
+
+### Fallbacks
+
+- Step 1: the seeded number comes from `measureNow` in `components/use-measurement.ts`; if the worker fails, `measureInWorker` in `lib/adapter.real.ts` runs `runBench` on the main thread.
+- Step 2: the same worker path, with the main-thread `runBench` after one 2 s retry; cell B shows "Measuring this set" instead of an old number.
+- Step 3: the same as step 2; the plot draws tracks only until the new answer lands, so old exits never sit on new tracks.
+- Step 4: the same as step 2; the worst case is 2 x 2000 ms plus the main-thread bench, under 5 s.
+- Step 5: the download is disabled while the measurement is pending or stale; if the file cannot be built, `DownloadErrorState` in `components/exposure-bench.tsx` offers "Try the download again".
+- Step 6: `UploadErrorState` in `components/upload-cell.tsx` lists the issues and offers "Choose other files".
+- Step 7: `app/error.tsx` (`BenchErrorState`) covers `/` and `/about`; `LimitationsEmptyState` in `app/about/page.tsx` links back to Maya.

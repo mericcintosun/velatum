@@ -189,3 +189,45 @@ None, the agent cannot run commands.
 
 ### Next best step
 Phase 3: error and loading states (AnimatePresence staging on cell D, kit signature 3), plus the upload flow (drag and drop, the 3-activity message, the missing-timestamp warning).
+
+## 8. Phase 3: demo path end to end (2026-11-25)
+
+### Goal
+The real Web Worker adapter is now the production default. The worst-case wait fits the 5 second step budget, no stale number or stale file can reach the screen or the disk, the upload cell stages its reading, error, warning, loaded and empty states with `AnimatePresence` (kit signature 3), and every route has a named skeleton, error state and empty state.
+
+### Status (per slice)
+- Slice 1, real default and 5 s budget: done. `getAdapterMode()` returns `"fake"` only for `ADAPTER_MODE=fake` (`lib/adapter-mode.ts:11`). `DEMO_STEP_BUDGET_MS = 5000` and `WORKER_TIMEOUT_MS = 2000` in `lib/config.ts`. `tests/demo-path.test.ts` added. The fallback is still the `runBench` call inside `measureInWorker` in `lib/adapter.real.ts`.
+- Slice 2, no stale number or file: done. `useMeasurement` returns `stale` (subject tracked in the `shownSubject` ref next to the job id). `TracePlot` accepts `result: null`. `ResultSkeleton` in `components/result-cell.tsx`. `guardDownload` and `DownloadErrorState` in `components/exposure-bench.tsx`; the button is `disabled={!zoneOn || pending || stale || downloading}`.
+- Slice 3, upload cell triad: done, nothing cut. `components/upload-cell.tsx` holds `readFiles`, the checks, `tryBrokenFile`, the hidden input, a `dragDepth` ref, and `AnimatePresence mode="wait" initial={false}` inside `MotionConfig reducedMotion="user"`. Branches: `UploadReadingSkeleton`, `UploadErrorState`, `UploadWarnings`, `UploadLoadedState`, `UploadEmptyState`. The issue list staggers through `variants` (0.04 s, opacity only, linear, 0.28 s). Cell F uses `RunnersEmptyState`.
+- Slice 4, route triads and images: done. `BenchSkeleton` (`app/loading.tsx`), `BenchErrorState` (`app/error.tsx`), `AboutSkeleton` (`app/about/loading.tsx`), `LimitationsEmptyState` (`app/about/page.tsx`). `components/scene-slot.tsx` and `components/brand-mark.tsx` use `next/image` with `unoptimized`.
+- Slice 5, reset, proof and docs: done. `scripts/demo-reset.mjs`, `npm run demo:reset`, the `demoPath()` block in `scripts/proof.ts`, README "Data, reset and fallbacks" and the `demo-path` markers, DEMO.md "Fallbacks".
+- Build status: unverified. The agent cannot run commands.
+
+### Decisions
+- **Persistence: the store is none.** Row chosen: "Steps only read seeded or computed data". Seed constants in `lib/data/seed.ts` plus in-memory state in the tab. Rejected: a KV blob (no step mutates shared state, and storing tracks would break "Files stay in this tab"), Postgres (nothing relational), on-chain (no chain). There is no `lib/store.ts`, no store secret and no migration.
+- **Default flipped to `real`.** Only an explicit `ADAPTER_MODE=fake` forces the main-thread bench. `.env.example` now says `ADAPTER_MODE=real`. No new env key, `.farm-live.json` unchanged.
+- **Timeout lowered from 4000 ms to 2000 ms.** 2 attempts x 2000 ms plus the main-thread fallback stays under 5000 ms; Phase 2's 4000 ms x 2 broke the rule.
+- **No server write path, so server-side idempotency is not applicable.** The download is a Blob built in the tab; nothing is posted anywhere (CSP `connect-src 'self'`, no API handler takes input). Double clicks are guarded on the client: `guardDownload` returns early while `downloading` (state) or `downloadBusy` (ref, for two clicks inside one render) is set, and while `!zoneOn || pending || stale`.
+- **`stale` is derived from a ref read during render.** The ref changes only together with `setMeasurement`, so every change is followed by a render. If `adapter.measure` ever rejects, the hook computes the answer with `measureNow` and labels it a fallback, so `stale` cannot stick.
+- **A fifth upload branch, `UploadLoadedState`.** With files loaded and no issues, "No files checked yet" would be false, so a short loaded line shows instead. "Try a broken file" now lives only in `UploadEmptyState`, as the spec asks.
+- **Issue reset on runner picks.** Cell F bumps a `resetKey`; `UploadCell` clears its issues by adjusting state during render, with no effect chain.
+- **`brand-mark.tsx` moved to `next/image` too**, because the gate wants zero `<img` hits in `components/`. It is outside the listed slice 4 files and is noted here.
+
+### Failed attempts
+None.
+
+### Files changed
+New: `components/upload-cell.tsx`, `app/about/loading.tsx`, `tests/demo-path.test.ts`, `scripts/demo-reset.mjs`, `.farm-commits.json`.
+Edited: `lib/adapter-mode.ts`, `lib/config.ts`, `.env.example`, `components/use-measurement.ts`, `components/trace-plot.tsx`, `components/result-cell.tsx`, `components/exposure-bench.tsx`, `components/scene-slot.tsx`, `components/brand-mark.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/about/page.tsx`, `scripts/proof.ts`, `package.json`, `README.md`, `DEMO.md`, `HANDOFF.md`.
+
+### Commands run
+None, the agent cannot run commands.
+
+### Open questions
+- Deadline conflict: the Devpost overview says November 22, the schedule says December 9, 2026, 5:00 PM EST. Still unconfirmed with the organizer.
+- Vercel must be redeployed with `ADAPTER_MODE=real` (or with the key unset, which now means real). Worker latency on the live URL is still unmeasured.
+- The `demo-path` README block reads "Not run" until `npm run proof` runs.
+- `next/image` with `unoptimized` serves the SVGs as is; if `next.config.ts` ever sets an `images` policy, check `/logo.svg` and `/illustrations/*.svg` still render.
+
+### Next best step
+Phase 4: run `npm run build`, `npm test` and `npm run proof`, walk DEMO.md steps 1 to 7 three times after `npm run demo:reset`, then start the next frontend work. Kit signature 2 (the draggable zone center) stays in Phase 5.
