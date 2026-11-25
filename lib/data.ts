@@ -107,7 +107,7 @@ export const BROKEN_GPX_SAMPLE = `<?xml version="1.0" encoding="UTF-8"?>
 
 export const SAFETY_STEPS: string[] = [
   "Start and stop recording a few streets from your door, never on the doorstep.",
-  "Use a privacy zone of at least 500 m, and center it on a point that is not your home.",
+  "Use a privacy zone of at least 0.5 km, and center it on a point that is not your home.",
   "Vary where recordings begin. The same corner every morning becomes a new doorstep.",
   "Hide start times and total distance if your app allows it. Velatum does not measure those leaks yet.",
 ];

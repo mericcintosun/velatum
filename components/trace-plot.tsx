@@ -197,7 +197,7 @@ export function TracePlot({
           vectorEffect="non-scaling-stroke"
         />
         <text x={vx + u * 4} y={vy + h - u * 5.5} fontSize={u * 2.6} stroke="none">
-          {scale === 1000 ? "1 km" : "500 m"}
+          {scale === 1000 ? "1 km" : "0.5 km"}
         </text>
         <text x={vx + w - u * 4} y={vy + u * 5} fontSize={u * 2.6} stroke="none" textAnchor="end">
           N ↑
