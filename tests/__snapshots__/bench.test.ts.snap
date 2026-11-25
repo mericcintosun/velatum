@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`runBench on the seeded runners > aylin under app-default 1`] = `
+{
+  "headlineError": 0.9,
+  "headlineSource": "circle",
+  "preset": "app-default",
+  "runner": "aylin",
+  "verdict": "exposed",
+}
+`;
+
+exports[`runBench on the seeded runners > kerem under app-default 1`] = `
+{
+  "headlineError": 3.6,
+  "headlineSource": "circle",
+  "preset": "app-default",
+  "runner": "kerem",
+  "verdict": "exposed",
+}
+`;
+
+exports[`runBench on the seeded runners > maya under app-default 1`] = `
+{
+  "headlineError": 1.4,
+  "headlineSource": "circle",
+  "preset": "app-default",
+  "runner": "maya",
+  "verdict": "exposed",
+}
+`;
+
+exports[`runBench on the seeded runners > maya under none 1`] = `
+{
+  "headlineError": 2.3,
+  "headlineSource": "endpoint",
+  "preset": "none",
+  "runner": "maya",
+  "verdict": "exposed",
+}
+`;
+
+exports[`runBench on the seeded runners > maya under velatum 1`] = `
+{
+  "headlineError": 446.6,
+  "headlineSource": "endpoint",
+  "preset": "velatum",
+  "runner": "maya",
+  "verdict": "protected",
+}
+`;
