@@ -312,3 +312,62 @@ None, the agent cannot run commands.
 
 ### Next best step
 Phase 5 frontend pass: kit signature 2 (the draggable zone center bound to `centerOffset`, so dragging it moves cell B and the roll call), then the screenshot review at 360, 768 and 1280 px.
+
+## 10. Phase 5: frontend pass (2026-11-25)
+
+### Goal
+Cut the bento copy roughly in half, give the home route one primary CTA (Maya, a `Button asChild` in cell A), make cell E image only, ship kit signature 2 (the draggable zone handle on Fig. 1, bound to `centerOffset`), make cell F the L4 hover-expand cell, add scene slots 4 to 6, and write the submission package (README, SUBMISSION.md, LICENSE, docs/SCREENSHOTS.md).
+
+**This phase ran without BEFORE shots.** No live deployment had been captured, so the diagnosis was done from the source files (each Diagnosis row names the file and line range). Publish first; the first post-deploy capture is the baseline.
+
+### Status per slice
+- Slice A, structure and simplification: done, nothing cut. Cell A paragraph is one sentence plus the primary `Button asChild` around the plain `<a href="/?runner=maya">`. Cell E is `SceneSlot n={1}` alone in a `p-0` card. Cell C helper text sits in one "What each slider does" `<details>`; "Turn on a privacy zone first." and "Set a privacy zone to produce a cleaned file." stay visible as state lines. Cell F lost the 0°N 0°E sentence; the summary line is verbatim. Footer: one sentence plus three links (GitHub, SECURITY.md, SafeSpace Hacks), all `target="_blank" rel="noopener noreferrer"`. `/about`: one sentence per section plus its figure; research, trust list, credits and limitations 2 to 5 behind one-line `<details>`; the distance-leak limitation is visible first; `LimitationsEmptyState` kept. Every h2 is `text-2xl sm:text-3xl`; the h1/h2 display-font base rule already existed in `app/globals.css` (`@layer base { h1, h2 { font-family: var(--font-cormorant) ... } }`).
+- Slice B1, kit signature 2: done, full drag (not the click-only fallback). `zoneAngle(seed)` exported from `lib/attack.ts`; `applyDefenses` calls it and still consumes the first PRNG draw, so every later draw and every snapshot is unchanged. New `components/zone-handle.tsx`; `components/trace-plot.tsx` renders it when `zoneRadius > 0` and `onOffset` is set.
+- Slice B2, hover-expand and scenes: done, nothing cut. Scene 4 (1200x400) in the evidence dialog, scene 5 (640x600) in `UploadEmptyState`, scene 6 (1200x480) in the closing limitations section of `/about`, with hand-drawn SVG fallbacks.
+- Slice C, submission package: done.
+- Slice D, identity record and docs: done (three dated Amendment lines, DEMO.md step 4).
+- Build status: unverified. The agent cannot run commands.
+
+### Decisions
+- **Handle projection.** The handle can only move along the one secret direction the defense model uses, because the measured zone can only move there. The pointer's page point goes through the owning `<svg>`'s `getScreenCTM().inverse()` (after subtracting `window.scrollX/Y`, because `info.point` is a page coordinate), its y is flipped back (the plot draws `-y`), and it is projected on the ray: `d = (p - home) · (cos a, sin a)`, clamped to `[0, maxOffset(zoneRadius)]`. The handle follows the unrounded point while dragging; `onOffset` receives the value rounded to `DEFENSE_LIMITS.centerOffset.step` (10 m) and only when it changes, so the latest-wins measurement queue is not flooded.
+- **Uploads get the handle too.** `home` is `result.reference`, which is exactly what `runBench` hands to `applyDefenses`: the sample home for sample runners and the raw-file guess for uploads. When an upload produces no guess, `reference` is null and no handle renders. While a new subject is `stale`, the handle is hidden.
+- **ViewBox freeze.** `TracePlot` stores the pan-start frame in `frozenBox` (a ref) and flips a `panning` state, so the fitted frame is ignored until the pan ends. The frame also always includes `home ± maxOffset`, so the whole drag path is on screen.
+- **Plot role.** The svg is `role="img"` without the handle and `role="group"` with it, because children of `role="img"` are presentational and the `role="slider"` handle would be hidden from assistive tech.
+- **Keyboard and alternatives.** The handle is `tabIndex={0}`, `role="slider"` with `aria-valuemin/max/now/text`; Arrow keys step 10 m, Home and End jump to the limits. A gold ring circle shows on `:focus-visible` (`peer-focus-visible:opacity-100`). A click on the gold guide line also sets the offset at that point, and the offset slider in cell C remains.
+- **Hit area.** A transparent circle with a 44 px `non-scaling-stroke` gives a 44 px target at any plot scale.
+- **Hover-expand uses state, not CSS `:hover`.** Motion `layout` only animates across React renders, so pointer enter/leave and focus/blur set an `expanded` id that swaps `line-clamp-1` for `line-clamp-none`. The full habit text is always in the DOM. Runner buttons are `w-full sm:w-64`, so only height changes. Note: Motion's layout animation uses a transform internally; it is limited to this one height change, 280 ms linear, and is off under `prefers-reduced-motion` through `MotionConfig reducedMotion="user"`.
+- **One primary CTA.** "Choose GPX files" in cell D was the default (primary) variant; it is now `outline`, and the dialog's Close is `outline` instead of `ghost`. Cell A's Maya button is the only primary on `/`. `/about` keeps its own primary "Open Maya with a 200 m zone".
+- **Track names** with their dashes stay only in DELIVERY.md; README says "The track names are listed in DELIVERY.md."
+- **New illustrations in `public/illustrations/`.** CLAUDE.md lists that folder under "Never touch", but this phase's spec makes only scene-1 to scene-3 read-only and asks for scene-4 to scene-6 there. scene-1 to scene-3 are untouched.
+- **SUBMISSION.md markers.** `scripts/proof.ts` already lists SUBMISSION.md in `TARGETS`, so it needed no change; SUBMISSION.md carries a `bench-numbers` pair.
+- **Commit plan.** `.farm-commits.json` orders motion first (it adds `zoneAngle`, which the bench imports), then scenes, then UI, then docs. `components/exposure-bench.tsx` and `components/upload-cell.tsx` carry changes from slices A, B1 and B2 and ride in the UI commit; `components/result-cell.tsx` carries the scene-4 slot, the h2 step-down and the Close variant and rides in the scene commit.
+
+### Failed attempts
+None.
+
+### Files changed
+New: `components/zone-handle.tsx`, `public/illustrations/scene-4.svg`, `public/illustrations/scene-5.svg`, `public/illustrations/scene-6.svg`, `SUBMISSION.md`, `LICENSE`, `docs/SCREENSHOTS.md`, `.farm-delta.md`, `.farm-commits.json`.
+Edited: `lib/attack.ts`, `components/trace-plot.tsx`, `components/exposure-bench.tsx`, `components/result-cell.tsx`, `components/upload-cell.tsx`, `app/page.tsx`, `app/layout.tsx`, `app/about/page.tsx`, `README.md`, `IDENTITY.md` (Amendments only), `DEMO.md`, `HANDOFF.md`.
+
+### Commands run
+None, the agent cannot run commands.
+
+### Open questions
+- Deadline: the Devpost overview says November 22, the schedule says December 9, 2026, 5:00 PM EST. Still unconfirmed with the organizer.
+- Diagnosis ran without BEFORE shots because no live deployment had been captured, so publish first.
+- Scene slots 1 to 6 are SVG fallbacks until `public/brand/scene-N.png` uploads arrive.
+- No `public/brand/logo.png` exists, so the mark is `public/logo.svg`.
+- Runtime behavior of the pan on an SVG `<g>` (Motion `onPan` with `info.point`) is unverified until someone drags it in a browser. If the CTM conversion misbehaves, the cut protocol's fallback is already in place: keyboard plus click-on-the-guide-line.
+- `app/icon.svg` (pre-existing) holds hexes outside `app/globals.css`; all are IDENTITY hexes. The hex-scope gate wants hits only in `globals.css`; left as is because an icon file must carry its own colors.
+- The README "Try it in 60 seconds" and the `/about` copy say "cell 2", "cell 3", "cell 6"; those are the `No.` numbers on screen, while DEMO.md uses letters B, C, F for the same cells.
+
+### Next best step
+Phase 6, after the judge panel.
+
+### Manual submit checklist
+- [ ] Team member names on Devpost.
+- [ ] Every member confirms student enrollment and legal age.
+- [ ] Paste the video link into the form yourself.
+- [ ] Upload screenshots from `docs/SCREENSHOTS.md`.
+- [ ] Confirm the deadline with the organizer.
+- [ ] Keep `https://velatum.vercel.app` reachable through December 14.

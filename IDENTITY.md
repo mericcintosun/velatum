@@ -84,3 +84,6 @@ Rules:
 ## Amendments (append-only; later phases add dated lines here, never edit anything above)
 
 - 2026-11-25: below md the header's one link and one action sit in a disclosure; the mark stays outside it.
+- 2026-11-25: kit signature 2 is the draggable zone handle on Fig. 1 (`components/zone-handle.tsx`); dragging it, or the arrow keys on it, sets `centerOffset` along `zoneAngle(seed)`.
+- 2026-11-25: cell F (the roll call) is the L4 hover-expand cell; each runner's habit line opens on hover or focus.
+- 2026-11-25: scene slots are 1 to 6: 1 in cell E on `/` (cell E is now image only), 4 in the evidence dialog on `/`, 5 in the upload empty state on `/`, 2, 3 and 6 on `/about`.

@@ -19,7 +19,7 @@ Maya is a seeded synthetic runner (`fixtures/runners.json`, id `maya`). Her home
 1. **Open `/?runner=maya`** (`app/page.tsx`, cell A). Maya's 24 synthetic runs are on the plot and the "Files stay in this tab" badge is visible in cell A.
 2. **Click preset "No zone"** (`app/page.tsx`, cell C, then read cell B). Cell B shows the endpoint guess and the meters to the sample home, in red.
 3. **Click "200 m zone"** (`/?runner=maya&zone=200&offset=0&trim=0`, `app/page.tsx`, cells C and A). Orange exit dots appear and the dashed circle sits on the home. The card in cell B is still red.
-4. **Click "Offset + ragged edge" or drag the sliders** (`/?runner=maya&zone=1000&offset=700&trim=400`, `app/page.tsx`, cell C). The number in cell B climbs and the card turns green.
+4. **Click "Offset + ragged edge" or drag the sliders, or drag the gold handle on Fig. 1** (`/?runner=maya&zone=1000&offset=700&trim=400`, `app/page.tsx`, cells C and A). The number in cell B climbs and the card turns green. The handle sits at the zone center; drag it along its gold guide line away from the home (or focus it and press the arrow keys), and the offset slider, cell B and the cell F roll call follow.
 5. **Click "Download cleaned GPX"** (`app/page.tsx`, cell C). One metadata-free GPX file downloads, cut exactly as measured.
 6. **Go to `/#your-files` and click "Try a broken file"** (`app/page.tsx`, cell D). A red error appears in cell D.
 7. **Open the evidence dialog** (`app/page.tsx`, cell B, "Open the evidence") and read the distance-leak limitation. `/about` (`app/about/page.tsx`) lists the rest of the limitations.
