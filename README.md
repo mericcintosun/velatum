@@ -118,7 +118,7 @@ Measured by `npm run proof` on 2026-11-25 in Node with the same `runBench` the W
 
 | Check | Value | Budget |
 | --- | --- | --- |
-| Slowest `runBench` over 8 runners x 3 presets (Sofia M., 200 m zone) | 9 ms | 5000 ms |
+| Slowest `runBench` over 8 runners x 3 presets (Maya R., 200 m zone) | 6 ms | 5000 ms |
 | Step 5 file size, Maya at "Offset + ragged edge" | 274221 bytes | none |
 | Step 5 file identical across two `serializeGpx` calls (sha256) | match `88c440f22d3f` | match |
 | Worst-case worker wait, 2000 ms x 2 attempts | 4000 ms | 5000 ms |
