@@ -3,8 +3,15 @@
 // bundle and the worker bundle, where server env is not available (and must not leak).
 // ADAPTER_MODE stays in the server-only lib/adapter-mode.ts and reaches the page as a prop.
 
-/** How long one worker attempt may take before it is treated as hung. */
-export const WORKER_TIMEOUT_MS = 4000;
+/** No demo step may take longer than this, even when the worker fails. */
+export const DEMO_STEP_BUDGET_MS = 5000;
+
+/**
+ * How long one worker attempt may take before it is treated as hung.
+ * 2 attempts x 2000 ms plus the main-thread fallback stays under DEMO_STEP_BUDGET_MS.
+ * Phase 2 used 4000 ms x 2, which broke the 5 second rule.
+ */
+export const WORKER_TIMEOUT_MS = 2000;
 
 /** How many times a failed or hung worker attempt is retried with a fresh worker. */
 export const WORKER_RETRIES = 1;
