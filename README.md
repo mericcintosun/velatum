@@ -64,6 +64,16 @@ Headline distance from the closer guess to each synthetic sample home, measured 
 | Elif K. | 2 m | 1 m | 775 m |
 <!-- PROOF:END bench-runners -->
 
+<!-- PROOF:BEGIN roll-call -->
+Roll call (demo step 8), measured by `npm run proof` on 2026-11-25 with the same `runBench` and verdict as cell F. Protected means both attacks miss by 400 m or more, or nothing is left to attack.
+
+| Preset | Sample runners protected |
+| --- | --- |
+| No zone | 0 of 8 |
+| 200 m zone | 1 of 8 |
+| Offset + ragged edge | 6 of 8 |
+<!-- PROOF:END roll-call -->
+
 <!-- PROOF:BEGIN bench-tests -->
 `npm test` on 2026-11-25: 16 passed, 0 failed.
 
@@ -75,7 +85,7 @@ Measured by `npm run proof` on 2026-11-25 in Node with the same `runBench` the W
 
 | Check | Value | Budget |
 | --- | --- | --- |
-| Slowest `runBench` over 8 runners x 3 presets (Maya R., 200 m zone) | 11 ms | 5000 ms |
+| Slowest `runBench` over 8 runners x 3 presets (Sofia M., 200 m zone) | 10 ms | 5000 ms |
 | Step 5 file size, Maya at "Offset + ragged edge" | 274221 bytes | none |
 | Step 5 file identical across two `serializeGpx` calls (sha256) | match `88c440f22d3f` | match |
 | Worst-case worker wait, 2000 ms x 2 attempts | 4000 ms | 5000 ms |
@@ -98,6 +108,7 @@ The bench runs in a Web Worker by default (`ADAPTER_MODE=real`). One worker atte
 | 5. Download | `components/exposure-bench.tsx` (`guardDownload`) | GPX cut from the measurement on screen, disabled while pending or stale | `DownloadErrorState` with "Try the download again" |
 | 6. Your files | `components/upload-cell.tsx` | Read with DOMParser in the tab, staged states | `UploadErrorState` with "Choose other files" |
 | 7. Evidence and limits | `components/result-cell.tsx`, `app/about/page.tsx` | Evidence dialog and limitation list | `LimitationsEmptyState` links back to Maya; `app/error.tsx` covers both routes |
+| 8. Roll call | `components/use-roll-call.ts`, `components/exposure-bench.tsx` (cell F) | Every sample runner measured at the current settings through the same worker, latest wins, paused while cell B measures | Main-thread `runBench`; on rejection the error state with "Measure the roll call again" |
 
 ## Trust and responsible design
 
@@ -108,6 +119,8 @@ The bench runs in a Web Worker by default (`ADAPTER_MODE=real`). One worker atte
 - Uploaded files never reach the URL. For your own files there is no known "true home", so Velatum measures from the raw-file guess and says so on screen.
 
 ## How it uses the required tech
+
+No prize track names a sponsor product; all four tracks are automatic entries in the overall ranking, so there is no bounty table and no sponsor integration.
 
 SafeSpace Hacks does not require a sponsor SDK. The core is our own code: a GPX reader and writer on the browser's DOMParser, a seeded synthetic runner generator, DBSCAN, the Kasa circle fit, RANSAC, and the defense model, all in `lib/`. Motion drives the one transition where the result card grows into the evidence view.
 

@@ -69,6 +69,23 @@ function benchRunners(): string {
   ].join("\n");
 }
 
+/** Step 8: per preset, how many sample runners the same verdict counts as protected. */
+function rollCall(): string {
+  const rows = DEFENSE_PRESETS.map((p) => {
+    const verdicts = RUNNERS.map((runner) => bench(runner.id, p.id).verdict);
+    const protectedCount = verdicts.filter((v) => v === "protected" || v === "nothing-left").length;
+    return `| ${p.label} | ${protectedCount} of ${RUNNERS.length} |`;
+  });
+  console.log(`proof roll-call: ${RUNNERS.length} runners x ${DEFENSE_PRESETS.length} presets measured`);
+  return [
+    `Roll call (demo step 8), measured by \`npm run proof\` on ${today} with the same \`runBench\` and verdict as cell F. Protected means both attacks miss by 400 m or more, or nothing is left to attack.`,
+    "",
+    "| Preset | Sample runners protected |",
+    "| --- | --- |",
+    ...rows,
+  ].join("\n");
+}
+
 function benchTests(): string {
   const latency = "Worker latency is measured in the browser and shown under the result; this script does not measure it.";
   const bin = path.join(ROOT, "node_modules", ".bin", "vitest");
@@ -191,6 +208,8 @@ function main(): void {
   if (numbers !== null) blocks["bench-numbers"] = numbers;
   const runners = safe("bench-runners", benchRunners);
   if (runners !== null) blocks["bench-runners"] = runners;
+  const roll = safe("roll-call", rollCall);
+  if (roll !== null) blocks["roll-call"] = roll;
   const tests = safe("bench-tests", benchTests);
   if (tests !== null) blocks["bench-tests"] = tests;
   const demo = safe("demo-path", demoPath);

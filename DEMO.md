@@ -23,6 +23,7 @@ Maya is a seeded synthetic runner (`fixtures/runners.json`, id `maya`). Her home
 5. **Click "Download cleaned GPX"** (`app/page.tsx`, cell C). One metadata-free GPX file downloads, cut exactly as measured.
 6. **Go to `/#your-files` and click "Try a broken file"** (`app/page.tsx`, cell D). A red error appears in cell D.
 7. **Open the evidence dialog** (`app/page.tsx`, cell B, "Open the evidence") and read the distance-leak limitation. `/about` (`app/about/page.tsx`) lists the rest of the limitations.
+8. **Click a preset or drag a slider and read cell F** (`/?runner=maya&zone=1000&offset=700&trim=400`, `app/page.tsx`, cell F). Each runner shows its distance at these settings, and the summary line names how many of 8 are protected: "These settings make both attacks miss by 400 m or more for N of 8 sample runners." Click "No zone", then "Offset + ragged edge", and watch the roster move from red to green; read off the screen which runners still fall short of 400 m (Jonas, with his office starts, has a different habit from the rest, so compare his line).
 
 ## Seams
 
@@ -43,3 +44,4 @@ Maya is a seeded synthetic runner (`fixtures/runners.json`, id `maya`). Her home
 - Step 5: the download is disabled while the measurement is pending or stale; if the file cannot be built, `DownloadErrorState` in `components/exposure-bench.tsx` offers "Try the download again".
 - Step 6: `UploadErrorState` in `components/upload-cell.tsx` lists the issues and offers "Choose other files".
 - Step 7: `app/error.tsx` (`BenchErrorState`) covers `/` and `/about`; `LimitationsEmptyState` in `app/about/page.tsx` links back to Maya.
+- Step 8: `useRollCall` in `components/use-roll-call.ts` uses the same worker path, then the main-thread `runBench`; if a measurement still rejects, cell F shows the error state with "Measure the roll call again". The roll call waits while cell B measures, so it never delays the number in cell B.

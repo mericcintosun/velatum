@@ -1,18 +1,20 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { ResultCell, ResultSkeleton } from "@/components/result-cell";
 import { TracePlot } from "@/components/trace-plot";
 import { UploadCell } from "@/components/upload-cell";
 import { useMeasurement } from "@/components/use-measurement";
+import { useRollCall, type RollCallRow } from "@/components/use-roll-call";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardLabel } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { createBenchAdapter } from "@/lib/adapter";
-import { maxOffset, type DefenseSettings } from "@/lib/attack";
+import { createBenchAdapter, sampleSubject } from "@/lib/adapter";
+import { maxOffset, type DefenseSettings, type Verdict } from "@/lib/attack";
 import { DEFENSE_LIMITS, DEFENSE_PRESETS, type BenchParams } from "@/lib/data";
-import { NULL_ISLAND, formatMeters, makePlane, planeFor, type Track, type XY } from "@/lib/geo";
+import { formatMeters, planeFor, type Track, type XY } from "@/lib/geo";
 import { serializeGpx } from "@/lib/gpx";
 import type { AdapterMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,7 +28,7 @@ export function DownloadErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div role="alert" className="space-y-2 border-l-2 border-bad pl-3">
       <p className="text-xs text-bad">The file could not be built in this tab.</p>
-      <Button variant="link" size="sm" className="h-auto px-0" onClick={onRetry}>
+      <Button variant="link" size="sm" className="h-auto min-h-11 px-0" onClick={onRetry}>
         Try the download again
       </Button>
     </div>
@@ -37,11 +39,46 @@ export function DownloadErrorState({ onRetry }: { onRetry: () => void }) {
 export function RunnersEmptyState() {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">No sample runners are loaded. Drop your own GPX files in cell 4.</p>
-      <Button asChild variant="outline" size="sm">
+      <p className="text-sm text-muted-foreground">
+        No sample runners are loaded, so there is no roll call to measure. Drop three or more of your own GPX files in cell 4
+        and cell 2 measures them.
+      </p>
+      <Button asChild variant="outline" size="sm" className="min-h-11">
         <a href="#your-files">Check your own files</a>
       </Button>
     </div>
+  );
+}
+
+// Motion M5 for the roll call states: opacity only, linear, 280 ms.
+const ROLL_FADE = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.28, ease: "linear" },
+} as const;
+
+const ROLL_TONE: Record<Verdict, { text: string; word: string }> = {
+  exposed: { text: "text-bad", word: "exposed" },
+  narrowed: { text: "text-warn", word: "narrowed" },
+  protected: { text: "text-ok", word: "protected" },
+  "nothing-left": { text: "text-ok", word: "nothing left" },
+  inconclusive: { text: "text-muted-foreground", word: "no guess" },
+};
+
+/** The second line of a runner button in cell F: that runner's distance at the current settings. */
+function RollCallLine({ row, loading }: { row: RollCallRow | undefined; loading: boolean }) {
+  if (loading || !row) {
+    return <span className="text-[11px] font-normal normal-case tracking-normal text-muted-foreground">Measuring</span>;
+  }
+  if (row.error === null) {
+    return <span className="text-[11px] font-semibold normal-case tracking-normal text-muted-foreground">No guess</span>;
+  }
+  const tone = ROLL_TONE[row.verdict];
+  return (
+    <span className={cn("text-[11px] font-semibold normal-case tracking-normal", tone.text)}>
+      {formatMeters(row.error)} {tone.word}
+    </span>
   );
 }
 
@@ -73,13 +110,12 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
 
   const subject = useMemo(() => {
     if (source.kind === "sample") {
-      const { profile: runner, tracks } = adapter.loadSample(source.runnerId);
-      const plane = makePlane(NULL_ISLAND);
+      const { profile: runner, tracks, xy, trueHome, seed } = sampleSubject(adapter, source.runnerId);
       return {
         tracks,
-        xy: tracks.map((t) => t.points.map((p) => plane.toXY(p))),
-        trueHome: { x: runner.homeEast, y: runner.homeNorth } as XY | null,
-        seed: runner.seed,
+        xy,
+        trueHome: trueHome as XY | null,
+        seed,
         label: `${runner.name}, ${tracks.length} synthetic ${runner.sport === "run" ? "runs" : "rides"}`,
         referenceLabel: "Sample home",
         fileName: `velatum-${runner.id}-cleaned.gpx`,
@@ -101,6 +137,11 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
   // `stale` is true while the shown answer belongs to the previous runner or file set.
   const { measurement, pending, stale } = useMeasurement(adapter, subject, measured);
   const result = measurement.result;
+
+  // Cell F roll call: every sample runner at the same settings. It waits while cell B measures,
+  // so it never competes with the number the user is reading.
+  const rollCall = useRollCall(adapter, runners, measured, !pending && !stale);
+  const rollRows = new Map<string, RollCallRow>(rollCall.status === "ready" ? rollCall.rows.map((r): [string, RollCallRow] => [r.id, r]) : []);
 
   // Shareable state: a sample result lives in the URL. Nothing about uploaded files ever does.
   useEffect(() => {
@@ -185,16 +226,22 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
       {/* Cell A, the largest: the claim and the live product. */}
       <Card className="velatum-enter flex flex-col gap-5 bg-background p-6 lg:col-span-7 lg:row-span-2 lg:p-8">
         <div className="space-y-2 border-b border-border pb-5">
-          <CardLabel number={1}>Home exposure bench</CardLabel>
+          <CardLabel number={1}>Velatum, for people who share their runs and rides</CardLabel>
           <h1 className="text-4xl leading-[1.05] sm:text-5xl">Does your privacy zone actually hide your front door?</h1>
           <p className="max-w-[68ch] text-sm leading-relaxed text-muted-foreground">
             Velatum runs the two published home-finding attacks on running and riding recordings, inside this tab, and tells you
             how many meters they miss by. A sample runner is already loaded.
           </p>
+          <a
+            href="/?runner=maya"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-gold underline-offset-4 hover:text-foreground"
+          >
+            Start with the sample runner Maya
+          </a>
         </div>
         <figure className="space-y-3">
           <div className="overflow-x-auto border border-border">
-            <TracePlot tracks={subject.xy} result={stale ? null : result}referenceLabel={subject.referenceLabel} />
+            <TracePlot tracks={subject.xy} result={stale ? null : result} referenceLabel={subject.referenceLabel} />
           </div>
           <figcaption className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
@@ -251,7 +298,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               size="sm"
               aria-pressed={activePreset?.id === p.id}
               title={p.note}
-              className={cn(activePreset?.id === p.id && "border-primary bg-secondary")}
+              className={cn("min-h-11", activePreset?.id === p.id && "border-primary bg-secondary")}
               onClick={() => setSettings(normalize(p.settings))}
             >
               {p.label}
@@ -266,6 +313,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               <span className="font-semibold">{zoneOn ? formatMeters(settings.zoneRadius) : "Off"}</span>
             </span>
             <Slider
+              className="min-h-11"
               min={DEFENSE_LIMITS.zoneRadius.min}
               max={DEFENSE_LIMITS.zoneRadius.max}
               step={DEFENSE_LIMITS.zoneRadius.step}
@@ -281,6 +329,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               <span className="font-semibold">{formatMeters(settings.centerOffset)}</span>
             </span>
             <Slider
+              className="min-h-11"
               min={DEFENSE_LIMITS.centerOffset.min}
               max={Math.max(offsetMax, 10)}
               step={DEFENSE_LIMITS.centerOffset.step}
@@ -301,6 +350,7 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
               <span className="font-semibold">up to {formatMeters(settings.extraTrim)}</span>
             </span>
             <Slider
+              className="min-h-11"
               min={DEFENSE_LIMITS.extraTrim.min}
               max={DEFENSE_LIMITS.extraTrim.max}
               step={DEFENSE_LIMITS.extraTrim.step}
@@ -315,7 +365,12 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
         </div>
 
         <div className="mt-auto space-y-3 border-t border-border pt-5">
-          <Button variant="outline" onClick={guardDownload} disabled={!zoneOn || pending || stale || downloading}>
+          <Button
+            variant="outline"
+            className="min-h-11 max-w-full whitespace-normal"
+            onClick={guardDownload}
+            disabled={!zoneOn || pending || stale || downloading}
+          >
             {downloadLabel}
           </Button>
           <p className="text-xs text-muted-foreground">
@@ -339,29 +394,68 @@ export function ExposureBench({ initial, mode, imageCell }: ExposureBenchProps) 
           <CardLabel number={6}>Sample runners, all synthetic</CardLabel>
           <p className="text-xs text-muted-foreground">Homes sit on a fictional street grid at 0°N 0°E, so none is a real doorstep.</p>
         </div>
-        {runners.length === 0 && <RunnersEmptyState />}
-        <div className="flex flex-wrap gap-2">
-          {runners.map((r) => {
-            const active = source.kind === "sample" && source.runnerId === r.id;
-            return (
-              <Button
-                key={r.id}
-                variant="outline"
-                aria-pressed={active}
-                className={cn("h-auto flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left", active && "border-primary bg-secondary")}
-                onClick={() => {
-                  setSource({ kind: "sample", runnerId: r.id });
-                  setRunnerPicks((n) => n + 1);
-                }}
-              >
-                <span>
-                  {r.name} · {r.activities} {r.sport === "run" ? "runs" : "rides"}
-                </span>
-                <span className="text-[11px] font-normal normal-case tracking-normal text-muted-foreground">{r.habit}</span>
-              </Button>
-            );
-          })}
-        </div>
+        {runners.length === 0 ? (
+          <RunnersEmptyState />
+        ) : (
+          <>
+            <MotionConfig reducedMotion="user">
+              <div className="min-h-11 font-sans" aria-live="polite">
+                <AnimatePresence mode="wait" initial={false}>
+                  {rollCall.status === "loading" && (
+                    <motion.p key="loading" {...ROLL_FADE} className="text-sm text-muted-foreground">
+                      Measuring all {runners.length} sample runners at these settings, in this tab.
+                    </motion.p>
+                  )}
+                  {rollCall.status === "error" && (
+                    <motion.div key="error" {...ROLL_FADE} role="alert" className="space-y-1 border-l-2 border-bad pl-3">
+                      <p className="text-sm text-bad">The roll call could not be measured in this tab. Cell 2 still shows your own number.</p>
+                      <Button variant="link" size="sm" className="h-auto min-h-11 px-0" onClick={rollCall.retry}>
+                        Measure the roll call again
+                      </Button>
+                    </motion.div>
+                  )}
+                  {rollCall.status === "ready" && (
+                    <motion.p key="ready" {...ROLL_FADE} className="text-sm">
+                      These settings make both attacks miss by 400 m or more for {rollCall.protectedCount} of {runners.length} sample
+                      runners.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </MotionConfig>
+            {source.kind === "upload" && (
+              <p className="text-xs text-muted-foreground">
+                The roll call covers the sample runners only; your files are measured in cell 2.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {runners.map((r) => {
+                const active = source.kind === "sample" && source.runnerId === r.id;
+                return (
+                  <Button
+                    key={r.id}
+                    variant="outline"
+                    aria-pressed={active}
+                    className={cn(
+                      "h-auto min-h-11 max-w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left",
+                      active && "border-primary bg-secondary"
+                    )}
+                    onClick={() => {
+                      setSource({ kind: "sample", runnerId: r.id });
+                      setRunnerPicks((n) => n + 1);
+                    }}
+                  >
+                    <span>
+                      {r.name} · {r.activities} {r.sport === "run" ? "runs" : "rides"}
+                    </span>
+                    <span className="text-[11px] font-normal normal-case tracking-normal text-muted-foreground">{r.habit}</span>
+                    <RollCallLine row={rollRows.get(r.id)} loading={rollCall.status !== "ready"} />
+                  </Button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
