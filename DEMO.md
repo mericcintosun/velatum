@@ -30,3 +30,5 @@ Maya is a seeded synthetic runner (`fixtures/runners.json`, id `maya`). Her home
 - Seed: `lib/data/seed.ts` (reads `fixtures/runners.json`; `npm run seed` validates it and writes `fixtures/seed-manifest.json`)
 - API: `app/api/runners/route.ts` (public synthetic profiles only; the page never calls it)
 - Tokens: `app/globals.css`
+- Worker: lib/bench.worker.ts via lib/adapter.real.ts
+- Proof: npm run proof

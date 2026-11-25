@@ -31,9 +31,44 @@ Open the sample runner Maya (24 synthetic night runs) and follow the result card
 
 Every sample state is encoded in the URL (`/?runner=maya&zone=1000&offset=700&trim=400`), so a judge can open the exact same measurement we did.
 
+<!-- PROOF:BEGIN bench-numbers -->
+Measured by `npm run proof` on 2026-11-25 with the same `runBench` the Web Worker runs (runner Maya, fixed seed).
+
+| Preset | Closest guess | Distance to sample home | Verdict |
+| --- | --- | --- | --- |
+| No zone | start and finish clustering | 2 m | exposed |
+| 200 m zone | zone edge circle fit | 1 m | exposed |
+| Offset + ragged edge | start and finish clustering | 447 m | protected |
+<!-- PROOF:END bench-numbers -->
+
 ### A limitation we want you to know about
 
 Velatum measures the geometry left in the file. It does not cover the distance leak attack from the CCS 2022 paper, where an app still displays the full distance of a run and that number gives the zone away. Hide total distance in your app as well. More limitations are listed on the How it works page.
+
+## Measured results
+
+`npm run proof` computes these with the same `runBench` the Web Worker runs and rewrites only the blocks below.
+
+<!-- PROOF:BEGIN bench-runners -->
+Headline distance from the closer guess to each synthetic sample home, measured on 2026-11-25.
+
+| Runner | No zone | 200 m zone | Offset + ragged edge |
+| --- | --- | --- | --- |
+| Maya R. | 2 m | 1 m | 447 m |
+| Kerem A. | 2 m | 4 m | 426 m |
+| Aylin D. | 1 m | 1 m | 333 m |
+| Jonas W. | 5 m | 787 m | 525 m |
+| Priya S. | 1 m | 3 m | 570 m |
+| Tomás L. | 2 m | 206 m | 514 m |
+| Sofia M. | 3 m | 1 m | 228 m |
+| Elif K. | 2 m | 1 m | 775 m |
+<!-- PROOF:END bench-runners -->
+
+<!-- PROOF:BEGIN bench-tests -->
+`npm test` on 2026-11-25: 14 passed, 0 failed.
+
+Worker latency is measured in the browser and shown under the result; this script does not measure it.
+<!-- PROOF:END bench-tests -->
 
 ## Trust and responsible design
 
@@ -47,12 +82,17 @@ Velatum measures the geometry left in the file. It does not cover the distance l
 
 SafeSpace Hacks does not require a sponsor SDK. The core is our own code: a GPX reader and writer on the browser's DOMParser, a seeded synthetic runner generator, DBSCAN, the Kasa circle fit, RANSAC, and the defense model, all in `lib/`. Motion drives the one transition where the result card grows into the evidence view.
 
+The bench runs in a Web Worker in your tab (`lib/bench.worker.ts`): every message is checked with zod, a hung worker is restarted once, and if it still fails the page computes the result itself and says so under the number.
+
 ## Tech stack
 
 - Next.js 15 (App Router), React 19, TypeScript (strict)
 - Tailwind CSS v4 with shadcn/ui-style primitives
 - Motion (`motion/react`) for the shared-layout result transition
 - Hand-written DBSCAN, Kasa fit and RANSAC (no geometry or clustering library)
+- Web Worker (browser platform API) so the bench never blocks the page
+- zod 4 for worker message validation
+- Vitest 3 for the snapshot and property tests, tsx to run the proof script
 - Deployed on Vercel as a static-friendly app with a strict CSP
 
 ## Quickstart
@@ -61,6 +101,8 @@ SafeSpace Hacks does not require a sponsor SDK. The core is our own code: a GPX 
 npm install
 npm run dev
 # open http://localhost:3000
+npm test          # snapshot and property tests over the seeded runners
+npm run proof     # measures the runners and rewrites the Measured results blocks
 ```
 
 No environment variables are needed. `npm run build && npm start` runs the production build with the CSP enabled.
@@ -73,7 +115,6 @@ Pre-existing and credited: Next.js, React, Tailwind CSS, the shadcn/ui primitive
 
 ## What we would build next
 
-- Run the attacks in a Web Worker so a year of recordings never blocks the page.
 - Cover the distance leak: compare displayed distance with visible distance and flag zones that leak through it.
 - Report the average error over 20 seeds per sample runner, so the defense presets are tuned on numbers, not intuition.
 - An optional map view with a clear warning that the tile server sees the area.

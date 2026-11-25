@@ -141,3 +141,51 @@ None, the agent cannot run commands. Checks were done by reading files and with 
 
 ### Next best step
 Phase 2: a Worker-backed `real` adapter in `createBenchAdapter` (the same `runBench` behind `new Worker(new URL("./bench.worker.ts", import.meta.url))`, CSP unchanged), `npm run proof` measuring Maya's three presets and writing the numbers, and `.farm-live.json`. Record the live Vercel URL here.
+
+## 7. Phase 2: worker bench and proof (2026-11-25)
+
+### Goal
+Make exactly one mechanism real: the `real` adapter runs the same `runBench` (DBSCAN endpoint attack plus RANSAC and Kasa circle fit) inside a Web Worker, with zod validation at the message boundary, a 4 s timeout, exactly one retry on a fresh worker, and a main-thread fallback. Dragging the sliders no longer blocks the page. Add snapshot tests and `npm run proof`.
+
+- **Mechanism that went real:** `runBench` in `lib/bench.worker.ts`, reached through the real adapter (`realBenchAdapter`, selected only in `lib/adapter.ts`).
+- **Still fixture-backed:** `listRunners` and `loadSample` (the 8 synthetic runners from `fixtures/runners.json`), synthetic by rule.
+- **Env keys for the runner:** none. `.farm-live.json` is `{ "requiredEnv": [], "optionalEnv": [] }` because the bench is computed in the visitor's browser and there is no secret; production can switch to `ADAPTER_MODE=real` on the next deploy.
+
+### Status (per slice)
+- Slice 1, config, error union, boundary schemas: done (`lib/config.ts`, `lib/errors.ts`, `lib/schemas.ts`, `lib/types.ts`, zod in `package.json`).
+- Slice 2, worker, real adapter, selector: done. `fakeBenchAdapter` moved to `lib/adapter.fake.ts` and is re-exported from `lib/adapter.ts`, so `app/api/runners/route.ts` needed no change. `createBenchAdapter` is the only branch on the mode; `getAdapterMode` still defaults to `"fake"`.
+- Slice 3, async measure in the bench: done. `components/use-measurement.ts` seeds with `measureNow`, then measures with latest-wins coalescing. `ResultCell` takes `measurement` (plus an optional `pending`) and names the engine under the number.
+- Slice 4, tests: done (`vitest.config.mts`, `tests/bench.test.ts`, `tests/schemas.test.ts`). The snapshot file does not exist yet; Vitest writes it on the first run.
+- Slice 5, proof and docs: done (`scripts/proof.ts`, README markers and sections, DEMO.md Seams, this section).
+- Build status: unverified. The agent cannot run commands.
+
+### Decisions
+- **Async `measure` plus sync `measureNow`.** `measureNow` runs once in a `useState` initializer so the server HTML carries a real number with JavaScript off. Every later measurement goes through the async `measure`, which is the main thread for fake and the worker for real. The component has no `mode === "real"` branch.
+- **Engine line while pending.** Until the first async measurement lands, the line reads "Measuring in this tab." rather than naming an engine, because the seeded number came from `measureNow` and claiming either engine for it would be wrong.
+- **`lib/config.ts` reads no env.** It is imported by the client bundle and the worker bundle, where server env does not exist and must not leak. `ADAPTER_MODE` stays in the server-only `lib/adapter-mode.ts` and reaches the page as a prop.
+- **Empty `requiredEnv`.** The real path is in-browser computation; there is no hosted API and no secret.
+- **The route takes no input.** `app/api/runners/route.ts` accepts no body or query and never touches the worker, so the zod-at-the-edge rule applies to the worker boundary, which is where untrusted data (uploaded GPX geometry) crosses.
+- **No retry for `invalid-input` or `not-configured`.** Bad input stays bad and a missing `Worker` stays missing, so the adapter goes straight to the main-thread fallback. Timeouts, worker errors and unreadable replies get the one retry on a fresh worker. The retry is a bounded `for` loop, with no `while (true)` and no recursion.
+- **Worker created lazily** on the first `measure`, never at module load, so server rendering and the API route never construct one.
+- **Logs** carry ids, counts, codes and durations only, each prefixed with `LOG_PREFIX`.
+
+### Failed attempts
+None.
+
+### Files changed
+New: `lib/config.ts`, `lib/errors.ts`, `lib/schemas.ts`, `lib/bench.worker.ts`, `lib/adapter.fake.ts`, `lib/adapter.real.ts`, `components/use-measurement.ts`, `vitest.config.mts`, `tests/bench.test.ts`, `tests/schemas.test.ts`, `scripts/proof.ts`, `.farm-live.json`, `.farm-commits.json`.
+Edited: `lib/adapter.ts`, `lib/types.ts`, `components/exposure-bench.tsx`, `components/result-cell.tsx`, `package.json`, `.env.example`, `README.md`, `DEMO.md`, `HANDOFF.md`.
+
+### Commands run
+None, the agent cannot run commands.
+
+### Open questions
+- Deadline conflict: Devpost overview says November 22, the schedule says December 9, 2026, 5:00 PM EST. Still unconfirmed with the organizer.
+- First snapshot write: `tests/__snapshots__/bench.test.ts.snap` does not exist until `npm test` runs once outside CI mode. If the runner sets `CI=true`, Vitest refuses to write new snapshots and the five snapshot cases fail; run `npx vitest run -u` once locally and commit the file.
+- The gate wants `process.env` only in `lib/adapter-mode.ts` and `next.config.ts`, but `lib/brand-files.ts:2` reads `process.env.NEXT_PUBLIC_BRAND_FILES` (from before this phase; Next inlines it at build time). Left as is. Comments in `lib/adapter.ts`, `lib/adapter-mode.ts` and `lib/config.ts` also contain the words "process.env".
+- The gate also wants no `adapter.real` or `bench.worker` text outside `lib/`, but DEMO.md Seams must name them, and README names `lib/bench.worker.ts`. All of these are documentation, not imports. The only code import is in `lib/adapter.ts`.
+- `components/use-measurement.ts` has a type-only import of `BenchAdapter` from `@/lib/adapter`. That is the same module as `createBenchAdapter`; no other adapter file is imported in `components/`.
+- Worker latency on the live URL is unmeasured until a human opens step 4 there.
+
+### Next best step
+Phase 3: error and loading states (AnimatePresence staging on cell D, kit signature 3), plus the upload flow (drag and drop, the 3-activity message, the missing-timestamp warning).
