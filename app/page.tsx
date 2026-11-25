@@ -1,34 +1,38 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { seed } from "@/lib/data";
+import { ExposureBench } from "@/components/exposure-bench";
+import { SceneSlot } from "@/components/scene-slot";
+import { CardLabel } from "@/components/ui/card";
+import { parseBenchParams } from "@/lib/data";
 
-// TEMPLATE: this page must be rewritten with the idea's real copy at scaffold
-// time: hero with the product one-liner and ONE primary CTA, 2-3 product
-// sections, footer. Use the shadcn primitives in components/ui; never bare
-// unstyled HTML controls. No template copy may survive.
-export default function Home() {
+// S1 single-surface: the home route IS the tool. L4 bento: six unequal cells, the claim
+// inside the largest one, no lead paragraph above the grid. State lives in the URL
+// (?runner=maya&zone=200&offset=0&trim=0) so a measured result has a link.
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const initial = parseBenchParams(await searchParams);
+
   return (
-    <div className="space-y-16 py-10">
-      <section className="mx-auto max-w-2xl space-y-6 text-center">
-        <Badge variant="outline">TEMPLATE</Badge>
-        <h1 className="text-4xl font-bold tracking-tight">Template</h1>
-        <p className="text-lg text-muted-foreground">
-          Warm-start scaffold. If you can read this in a shipped product, the scaffold step failed.
-        </p>
-        <Button size="lg">Primary CTA</Button>
-      </section>
-      <section className="grid gap-4 sm:grid-cols-2">
-        {seed.map((s) => (
-          <Card key={s.id}>
-            <CardHeader>
-              <CardTitle>{s.name}</CardTitle>
-              <CardDescription>Replace with a real feature card.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">Seed-driven content.</CardContent>
-          </Card>
-        ))}
-      </section>
-    </div>
+    <ExposureBench
+      initial={initial}
+      imageCell={
+        <>
+          <CardLabel number={5}>On display</CardLabel>
+          <figure className="space-y-2">
+            <SceneSlot
+              n={1}
+              alt="Two dozen running loops drawn in ink converge on a single small house, framed by a thin gold circle like an exhibit on a plinth"
+              width={960}
+              height={640}
+              className="border border-border"
+            />
+            <figcaption className="text-xs leading-relaxed text-muted-foreground">
+              Every loop begins at the same door. That repetition is the whole attack.
+            </figcaption>
+          </figure>
+        </>
+      }
+    />
   );
 }
