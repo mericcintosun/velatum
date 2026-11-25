@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640">
+  <rect width="960" height="640" fill="#f4f1ea"/>
+  <rect x="40" y="40" width="880" height="560" fill="none" stroke="#ad8c3a" stroke-width="1"/>
+  <rect x="330" y="500" width="300" height="40" fill="#e2dccd" stroke="#d3cab4" stroke-width="1"/>
+  <g fill="none" stroke="#191713" stroke-width="2" stroke-opacity="0.55" stroke-linejoin="round">
+    <path d="M480 300 L480 250 L560 250 L560 170 L680 170 L680 260 L600 260 L600 300 Z"/>
+    <path d="M480 300 L400 300 L400 200 L300 200 L300 120 L430 120 L430 250 L480 250"/>
+    <path d="M480 300 L480 380 L380 380 L380 450 L250 450 L250 340 L480 340"/>
+    <path d="M480 300 L560 300 L560 420 L700 420 L700 330 L600 330 L600 300"/>
+    <path d="M480 300 L520 300 L520 210 L620 210 L620 110 L760 110 L760 230 L520 230"/>
+    <path d="M480 300 L440 300 L440 400 L320 400 L320 480 L200 480 L200 380 L440 380"/>
+    <path d="M480 300 L480 160 L360 160 L360 90 L220 90 L220 220 L480 220"/>
+  </g>
+  <circle cx="480" cy="300" r="92" fill="none" stroke="#ad8c3a" stroke-width="2" stroke-dasharray="8 6"/>
+  <path d="M458 318 L458 296 L480 276 L502 296 L502 318 Z" fill="#7a6220"/>
+  <text x="480" y="526" font-family="Georgia, serif" font-size="18" fill="#191713" text-anchor="middle" letter-spacing="4">NO. 1  THE DOORSTEP</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640">
+  <rect width="960" height="640" fill="#f4f1ea"/>
+  <rect x="40" y="40" width="880" height="560" fill="none" stroke="#ad8c3a" stroke-width="1"/>
+  <circle cx="560" cy="250" r="200" fill="none" stroke="#ad8c3a" stroke-width="2" stroke-dasharray="8 6"/>
+  <g fill="none" stroke="#191713" stroke-width="2" stroke-opacity="0.6">
+    <path d="M560 25 L560 70 L700 70"/>
+    <path d="M800 250 L860 250 L860 160"/>
+    <path d="M330 420 L250 500 L140 500"/>
+    <path d="M330 150 L230 100 L130 100"/>
+    <path d="M700 520 L760 560 L870 560"/>
+    <path d="M440 520 L420 570 L300 570"/>
+  </g>
+  <g fill="#a8641c">
+    <circle cx="560" cy="25" r="8"/>
+    <circle cx="800" cy="250" r="8"/>
+    <circle cx="330" cy="420" r="8"/>
+    <circle cx="330" cy="150" r="8"/>
+    <circle cx="700" cy="520" r="8"/>
+    <circle cx="440" cy="520" r="8"/>
+  </g>
+  <circle cx="600" cy="270" r="240" fill="none" stroke="#b3382c" stroke-width="2" stroke-dasharray="3 7"/>
+  <path d="M580 270 H620 M600 250 V290" stroke="#b3382c" stroke-width="3"/>
+  <path d="M396 352 L396 334 L410 320 L424 334 L424 352 Z" fill="#7a6220"/>
+  <path d="M410 300 L600 270" stroke="#2e7d4f" stroke-width="2" stroke-dasharray="2 5"/>
+  <text x="80" y="90" font-family="Georgia, serif" font-size="18" fill="#191713" letter-spacing="4">NO. 3  THE FIT LANDS ELSEWHERE</text>
+</svg>
