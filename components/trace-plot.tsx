@@ -3,7 +3,8 @@ import { formatMeters, type XY } from "@/lib/geo";
 
 interface TracePlotProps {
   tracks: XY[][];
-  result: BenchResult;
+  /** Null while the measurement belongs to another set of tracks: only the raw tracks are drawn. */
+  result: BenchResult | null;
   referenceLabel: string;
 }
 
@@ -30,8 +31,8 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
       if (p.y > maxY) maxY = p.y;
     }
   }
-  const { zone } = result;
-  if (zone.center) {
+  const zone = result?.zone ?? null;
+  if (zone?.center) {
     minX = Math.min(minX, zone.center.x - zone.radius);
     maxX = Math.max(maxX, zone.center.x + zone.radius);
     minY = Math.min(minY, zone.center.y - zone.radius);
@@ -57,9 +58,15 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
   const vy = -cy - h / 2;
   const u = w / 160;
 
-  const endpointGuess = result.endpoint.guess;
-  const circle = result.circle?.circle ?? null;
-  const ref = result.reference;
+  const endpointGuess = result?.endpoint.guess ?? null;
+  const circle = result?.circle?.circle ?? null;
+  const ref = result?.reference ?? null;
+  const label =
+    result === null
+      ? "Measuring this set."
+      : result.headline.error !== null
+        ? `The closest attack guess lands ${formatMeters(result.headline.error)} from the ${referenceLabel.toLowerCase()}.`
+        : "No attack produced a guess.";
   const scale = w > 6000 ? 1000 : 500;
 
   return (
@@ -67,14 +74,13 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
       viewBox={`${vx} ${vy} ${w} ${h}`}
       className="aspect-[4/3] w-full bg-background"
       role="img"
-      aria-label={`Plane view of ${tracks.length} recordings. ${
-        result.headline.error !== null ? `The closest attack guess lands ${formatMeters(result.headline.error)} from the ${referenceLabel.toLowerCase()}.` : "No attack produced a guess."
-      }`}
+      aria-label={`Plane view of ${tracks.length} recordings. ${label}`}
     >
       {tracks.map((t, i) => (
         <path key={`raw-${i}`} d={toPath(thin(t, 3))} fill="none" className="stroke-border" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       ))}
-      {tracks.map((t, i) =>
+      {zone &&
+        tracks.map((t, i) =>
         zone.tracks[i]?.segments.map(([a, b], k) => (
           <path
             key={`kept-${i}-${k}`}
@@ -88,7 +94,7 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
         ))
       )}
 
-      {zone.center && (
+      {zone?.center && (
         <circle
           cx={zone.center.x}
           cy={-zone.center.y}
@@ -101,7 +107,7 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
         />
       )}
 
-      {zone.center &&
+      {zone?.center &&
         zone.exits.map((p, i) => <circle key={`exit-${i}`} cx={p.x} cy={-p.y} r={u * 0.9} className="fill-warn" />)}
 
       {circle && (

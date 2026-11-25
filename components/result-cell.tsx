@@ -76,6 +76,27 @@ function EngineLine({ measurement, pending }: { measurement: Measurement; pendin
 }
 
 /**
+ * Cell B while the shown measurement belongs to another set of tracks: the same cell size,
+ * no number, so an old runner's distance is never read as the new one's. No pulse.
+ */
+export function ResultSkeleton({ referenceLabel }: { referenceLabel: string }) {
+  return (
+    <div role="status" aria-live="polite" className="flex h-full min-h-[260px] flex-col justify-between gap-5 border-l-2 border-border bg-card p-6">
+      <div className="space-y-3">
+        <CardLabel number={2}>Distance from guess to {referenceLabel.toLowerCase()}</CardLabel>
+        <p className="font-display text-4xl leading-none text-muted-foreground">Measuring this set</p>
+        <div className="space-y-2" aria-hidden="true">
+          <div className="h-px w-3/4 bg-gold" />
+          <div className="h-px w-1/2 bg-border" />
+          <div className="h-px w-2/3 bg-border" />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">The number appears when this set has been measured in this tab.</p>
+    </div>
+  );
+}
+
+/**
  * Kit signature 1 (shared-layout transition): the summary number grows from its bento
  * cell into the evidence view through one layoutId, with no cut, and shrinks back.
  */
