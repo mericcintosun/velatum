@@ -90,11 +90,11 @@ Headline distance from the closer guess to each synthetic sample home, measured 
 | Maya R. | 2 m | 1 m | 447 m |
 | Kerem A. | 2 m | 4 m | 426 m |
 | Aylin D. | 1 m | 1 m | 333 m |
-| Jonas W. | 5 m | 787 m | 525 m |
-| Priya S. | 1 m | 3 m | 570 m |
-| Tomás L. | 2 m | 206 m | 514 m |
+| Jonas W. | 5 m | 0.79 km | 0.53 km |
+| Priya S. | 1 m | 3 m | 0.57 km |
+| Tomás L. | 2 m | 206 m | 0.51 km |
 | Sofia M. | 3 m | 1 m | 228 m |
-| Elif K. | 2 m | 1 m | 775 m |
+| Elif K. | 2 m | 1 m | 0.78 km |
 <!-- PROOF:END bench-runners -->
 
 <!-- PROOF:BEGIN roll-call -->
@@ -118,7 +118,7 @@ Measured by `npm run proof` on 2026-11-25 in Node with the same `runBench` the W
 
 | Check | Value | Budget |
 | --- | --- | --- |
-| Slowest `runBench` over 8 runners x 3 presets (Maya R., 200 m zone) | 6 ms | 5000 ms |
+| Slowest `runBench` over 8 runners x 3 presets (Sofia M., 200 m zone) | 6 ms | 5000 ms |
 | Step 5 file size, Maya at "Offset + ragged edge" | 274221 bytes | none |
 | Step 5 file identical across two `serializeGpx` calls (sha256) | match `88c440f22d3f` | match |
 | Worst-case worker wait, 2000 ms x 2 attempts | 4000 ms | 5000 ms |
