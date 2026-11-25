@@ -1,3 +1,7 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { ZoneHandle } from "@/components/zone-handle";
 import type { BenchResult } from "@/lib/attack";
 import { formatMeters, type XY } from "@/lib/geo";
 
@@ -6,6 +10,22 @@ interface TracePlotProps {
   /** Null while the measurement belongs to another set of tracks: only the raw tracks are drawn. */
   result: BenchResult | null;
   referenceLabel: string;
+  /** Kit signature 2. The point applyDefenses moves the zone away from. */
+  home?: XY | null;
+  /** zoneAngle(seed), the secret direction of the offset. */
+  angle?: number;
+  /** Live settings (not the deferred measured ones), so the handle follows the slider at once. */
+  zoneRadius?: number;
+  centerOffset?: number;
+  offsetMax?: number;
+  onOffset?: (meters: number) => void;
+}
+
+interface Box {
+  vx: number;
+  vy: number;
+  w: number;
+  h: number;
 }
 
 function thin(points: XY[], every: number): XY[] {
@@ -21,7 +41,21 @@ function toPath(points: XY[]): string {
  * exit points in WARN, the attackers' guesses in BAD and the reference home in ACCENT.
  * No tiles are requested from any map server.
  */
-export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
+export function TracePlot({
+  tracks,
+  result,
+  referenceLabel,
+  home = null,
+  angle,
+  zoneRadius = 0,
+  centerOffset = 0,
+  offsetMax = 0,
+  onOffset,
+}: TracePlotProps) {
+  // While the handle is dragged the frame holds still, so the plot never rescales under the finger.
+  const frozenBox = useRef<Box | null>(null);
+  const [panning, setPanning] = useState(false);
+
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const t of tracks) {
     for (const p of t) {
@@ -37,6 +71,13 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
     maxX = Math.max(maxX, zone.center.x + zone.radius);
     minY = Math.min(minY, zone.center.y - zone.radius);
     maxY = Math.max(maxY, zone.center.y + zone.radius);
+  }
+  if (home && zoneRadius > 0 && onOffset) {
+    // Keep the whole drag path of the handle inside the frame.
+    minX = Math.min(minX, home.x - offsetMax);
+    maxX = Math.max(maxX, home.x + offsetMax);
+    minY = Math.min(minY, home.y - offsetMax);
+    maxY = Math.max(maxY, home.y + offsetMax);
   }
   if (!Number.isFinite(minX)) {
     minX = -500;
@@ -54,9 +95,19 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
   else w = (h * 4) / 3;
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
-  const vx = cx - w / 2;
-  const vy = -cy - h / 2;
+  const fitted: Box = { vx: cx - w / 2, vy: -cy - h / 2, w, h };
+  const frame = panning && frozenBox.current ? frozenBox.current : fitted;
+  const vx = frame.vx;
+  const vy = frame.vy;
+  w = frame.w;
+  h = frame.h;
   const u = w / 160;
+  const showHandle = zoneRadius > 0 && onOffset !== undefined && home !== null && angle !== undefined;
+
+  const onPanChange = (next: boolean) => {
+    frozenBox.current = next ? frame : null;
+    setPanning(next);
+  };
 
   const endpointGuess = result?.endpoint.guess ?? null;
   const circle = result?.circle?.circle ?? null;
@@ -68,13 +119,14 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
         ? `The closest attack guess lands ${formatMeters(result.headline.error)} from the ${referenceLabel.toLowerCase()}.`
         : "No attack produced a guess.";
   const scale = w > 6000 ? 1000 : 500;
+  const plotLabel = `Plane view of ${tracks.length} recordings. ${label}${showHandle ? " The gold handle moves the zone center." : ""}`;
 
   return (
     <svg
-      viewBox={`${vx} ${vy} ${w} ${h}`}
+      viewBox={[vx, vy, w, h].join(" ")}
       className="aspect-[4/3] w-full bg-background"
-      role="img"
-      aria-label={`Plane view of ${tracks.length} recordings. ${label}`}
+      role={showHandle ? "group" : "img"}
+      aria-label={plotLabel}
     >
       {tracks.map((t, i) => (
         <path key={`raw-${i}`} d={toPath(thin(t, 3))} fill="none" className="stroke-border" strokeWidth={1} vectorEffect="non-scaling-stroke" />
@@ -151,6 +203,18 @@ export function TracePlot({ tracks, result, referenceLabel }: TracePlotProps) {
           N ↑
         </text>
       </g>
+
+      {showHandle && home && angle !== undefined && onOffset && (
+        <ZoneHandle
+          home={home}
+          angle={angle}
+          centerOffset={centerOffset}
+          offsetMax={offsetMax}
+          unit={u}
+          onOffset={onOffset}
+          onPanChange={onPanChange}
+        />
+      )}
     </svg>
   );
 }

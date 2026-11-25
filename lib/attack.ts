@@ -245,9 +245,21 @@ function trimBack(segs: Segment[], xy: XY[], meters: number): Segment[] {
   return out;
 }
 
+/**
+ * The secret direction the zone center moves in, in radians from east, counterclockwise.
+ * It is the first draw of the seeded PRNG that applyDefenses uses, so the draggable handle
+ * on the plot and the measured zone can never point different ways.
+ */
+export function zoneAngle(seed: number): number {
+  return mulberry32(seed)() * Math.PI * 2;
+}
+
 export function applyDefenses(tracks: XY[][], home: XY, s: DefenseSettings, seed: number): ZoneOutcome {
   const rng = mulberry32(seed);
-  const angle = rng() * Math.PI * 2;
+  // Consume the first draw exactly as before, so every later draw (the per-recording cuts)
+  // stays the same and the snapshots stay valid. That first draw is the zone angle.
+  rng();
+  const angle = zoneAngle(seed);
   if (s.zoneRadius <= 0) {
     const zoned = tracks.map((t) => ({ segments: t.length > 1 ? ([[0, t.length - 1]] as Segment[]) : [] }));
     const exits = tracks.flatMap((t) => (t.length > 1 ? [t[0], t[t.length - 1]] : []));
